@@ -118,6 +118,9 @@ class App
           $location.path('/viewer').replace()
         annotator.show()
 
+    $scope.openGenerator = ->
+      $location.path('/generator').replace()
+ 
     $scope.$watch 'personas', (newValue, oldValue) =>
       if newValue?.length
         annotator.element.find('#persona')
@@ -310,9 +313,27 @@ class Viewer
       $scope.detail = false
       $scope.focus $scope.annotations
 
+class Generator
+  this.$inject = [
+    '$location', '$routeParams', '$scope',
+    'annotator', 'threading', 'domTextMapper', 'domTextMatcher'
+  ]
+  constructor: (
+    $location, $routeParams, $scope,
+    annotator, threading, domTextMapper, domTextMatcher
+  ) ->
+    {plugins, provider} = annotator
+    @domMapper = domTextMapper.getInstance()
+    @domMatcher = domTextMatcher.getInstance()
+    console.log "The annotation generator was created."
 
-angular.module('h.controllers', [])
+    $scope.doSomething = ->
+      console.log "Should do something!"
+
+
+angular.module('h.controllers', ['domTextMatcher'])
   .controller('AppController', App)
   .controller('AnnotationController', Annotation)
   .controller('EditorController', Editor)
   .controller('ViewerController', Viewer)
+  .controller('GeneratorController', Generator)

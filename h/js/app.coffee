@@ -15,6 +15,10 @@ configure = ($routeProvider) ->
     controller: 'ViewerController'
     reloadOnSearch: false
     templateUrl: 'viewer.html'
+  $routeProvider.when '/generator',
+    controller: 'GeneratorController'
+    templateUrl: 'generator.html'
+
 configure.$inject = ['$routeProvider']
 
 

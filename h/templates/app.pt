@@ -35,6 +35,9 @@
                    >{{option.username}}/{{option.provider}}</a>
               </li>
               <li>
+                <a data-ng-click="openGenerator()">Open generator</a>
+              </li>
+              <li>
                 <a data-ng-click="persona = null">Sign out</a>
               </li>
             </ul>
@@ -143,6 +146,9 @@
     </script>
     <script type="text/ng-template" id="viewer.html">
       <metal:main use-macro="load: viewer.html" />
+    </script>
+    <script type="text/ng-template" id="generator.html">
+      <metal:main use-macro="load: generator.html" />
     </script>
   </body>
 </html>
