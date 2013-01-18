@@ -36,7 +36,7 @@ pagedown = Uglify(
 )
 raf = Uglify('h:lib/polyfills/raf.js', output='h:lib/polyfills/raf.js.min')
 underscore = Bundle('h:lib/underscore-min.js')
-
+domTextMatcher = Bundle('h:lib/dom_text_*.min.js')
 
 # External dependencies
 jquery = Bundle('deform:static/scripts/jquery-1.7.2.min.js')
@@ -63,6 +63,7 @@ app = Bundle(
     pagedown,
     raf,
     underscore,
+    domTextMatcher,
     'h:lib/jquery.mousewheel.min.js',
     Uglify(
         *[
