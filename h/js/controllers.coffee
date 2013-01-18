@@ -330,6 +330,9 @@ class Generator
     $scope.doSomething = ->
       console.log "Should do something!"
 
+    $scope.closeGenerator = ->
+      $location.path('/viewer').replace()
+
 
 angular.module('h.controllers', ['domTextMatcher'])
   .controller('AppController', App)
