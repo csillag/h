@@ -315,9 +315,9 @@ class Hypothesis extends Annotator
     # added.
     if annotation.thread
       annotation.ranges = []
-    else
-      @provider.setupAnnotation
-        id: annotation.id
+
+    @provider.setupAnnotation
+      id: annotation.id
       ranges: annotation.ranges
 
   showViewer: (annotations=[]) =>
