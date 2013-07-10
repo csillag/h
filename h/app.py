@@ -31,46 +31,6 @@ class AppController(views.BaseController):
         result = views.AuthController(self.request).login()
         return self.respond(result)
 
-    @view_config(request_method='POST', request_param='__formid__=register')
-    def register(self):
-        result = views.RegisterController(self.request).register()
-        return self.respond(result)
-
-    @view_config(request_method='POST', request_param='__formid__=activate')
-    def activate(self):
-        request = self.request
-        schema = request.registry.getUtility(interfaces.IActivateSchema)
-        schema = schema().bind(request=self.request)
-        form = request.registry.getUtility(interfaces.IActivateForm)(schema)
-
-        appstruct = None
-        result = None
-        try:
-            appstruct = form.validate(request.POST.items())
-        except deform.ValidationFailure as e:
-            result = dict(form=e.render(), errors=e.error.children)
-        else:
-            code = appstruct['code']
-            activation = self.Activation.get_by_code(request, code)
-            user = None
-            if activation:
-                user = self.User.get_by_activation(request, activation)
-
-            request.user = user
-            if user:
-                user.password = appstruct['password']
-                self.db.add(user)
-                self.db.delete(activation)
-                FlashMessage(request, self.Str.authenticated, kind='success')
-            else:
-                form.error = colander.Invalid(
-                    form.schema,
-                    _('This activation code is not valid.')
-                )
-                result = dict(form=form.render(), errors=[form.error])
-
-        return self.respond(result)
-
     @view_config(request_method='POST', request_param='__formid__=forgot')
     def forgot(self):
         result = views.ForgotPasswordController(self.request).forgot_password()
