@@ -48,10 +48,10 @@ class Annotator.Host extends Annotator
     # Scan the document text with the DOM Text libraries
     this.scanDocument "Annotator initialized"
 
-  setAlwaysOnHighlights: (value) ->
+  setPersistentHighlights: ->
     body = $('body')
     markerClass = 'annotator-highlights-always-on'        
-    if value
+    if @alwaysOnMode or @highlightingMode
       body.addClass markerClass
     else
       body.removeClass markerClass        
@@ -138,9 +138,14 @@ class Annotator.Host extends Annotator
               $(this).removeClass('annotator-hl-active')
         )
 
+        .bind('setAlwaysOnMode', (ctx, value) =>
+          @alwaysOnMode = value
+          this.setPersistentHighlights()
+        )
+
         .bind('setHighlightingMode', (ctx, value) =>
           @highlightingMode = value
-          this.setAlwaysOnHighlights value
+          this.setPersistentHighlights()
         )
 
         .bind('getHref', => this.getHref())
@@ -328,12 +333,12 @@ class Annotator.Host extends Annotator
   # When clicking on a highlight in highlighting mode,
   # set @noBack to true to prevent the sidebar from closing
   onHighlightMousedown: (event) =>
-    if @highlightingMode then @noBack = true    
+    if @highlightingMode or @alwaysOnMode then @noBack = true
 
   # When clicking on a highlight in highlighting mode,
   # tell the sidebar to bring up the viewer for the relevant annotations
   onHighlightClick: (event) =>
-    return unless @highlightingMode and @noBack
+    return unless @highlightingMode or @alwaysOnMode and @noBack
 
     # We have already prevented closing the sidebar, now reset this flag
     @noBack = false
