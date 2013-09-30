@@ -19,7 +19,10 @@ util =
     Math.max.apply(Math, all)
 
   mousePosition: (e, offsetEl) ->
-    offset = $(offsetEl).position()
+    # If the offset element is not a positioning root use its offset parent
+    unless $(offsetEl).css('position') in ['absolute', 'fixed', 'relative']
+      offsetEl = $(offsetEl).offsetParent()[0]
+    offset = $(offsetEl).offset()
     {
       top:  e.pageY - offset.top,
       left: e.pageX - offset.left
@@ -94,6 +97,7 @@ class Annotator extends Delegator
 
     # Return early if the annotator is not supported.
     return this unless Annotator.supported()
+    this.pdfMode = PDFView?.initialized ? false
     this._setupDocumentEvents() unless @options.readOnly
     this._setupWrapper()
     this._setupMatching() unless @options.noMatching
@@ -106,18 +110,26 @@ class Annotator extends Delegator
     # Create adder
     this.adder = $(this.html.adder).appendTo(@wrapper).hide()
 
+
   # Initializes the components used for analyzing the DOM
   _setupMatching: ->
-        
-    @domMapper = new DomTextMapper()
-    @domMatcher = new DomTextMatcher @domMapper
-    @domMapper.setRootNode @wrapper[0]
+    if @pdfMode
+      if @pdfMapper? then return
+      @pdfMapper = new PDFTextMapper()
+    else
+      if @domMapper? then return
+      @domMapper = new DomTextMapper()
+      @domMatcher = new DomTextMatcher @domMapper
+      @domMapper.setRootNode @wrapper[0]
 
     this
 
   # Perform a scan of the DOM. Required for finding anchors.
   _scan: ->
-    @domMatcher.scan()   
+    if @pdfMode
+      @pdfMapper.scan()
+    else
+      @domMatcher.scan()
  
   # Wraps the children of @element in a @wrapper div. NOTE: This method will also
   # remove any script elements inside @element to prevent them re-executing.
@@ -324,12 +336,19 @@ class Annotator extends Delegator
   #
   # Returns an Object containing a `source` property and a `selector` Array.
   getTargetFromRange: (range) ->
-    source: this.getHref()
-    selector: [
-      this.getRangeSelector range
-      this.getTextQuoteSelector range
-      this.getTextPositionSelector range
-    ]
+    if @pdfMode
+      console.log "Creating selectors for PDF is not supported yet."
+      # TODO: implement selectors for PDF
+      selectors = [
+      ]
+    else
+      selectors = [
+        this.getRangeSelector range
+        this.getTextQuoteSelector range
+        this.getTextPositionSelector range
+      ]
+
+    return source: this.getHref(), selector: selectors
 
   # Public: Creates and returns a new annotation object. Publishes the
   # 'beforeAnnotationCreated' event to allow the new annotation to be modified.
@@ -400,9 +419,11 @@ class Annotator extends Delegator
       content = @domMapper.getContentForCharRange selector.start, selector.end
       currentQuote = this.normalizeString content
       if currentQuote isnt savedQuote
-        console.log "Could not apply position selector to current document \
-          because the quote has changed. (Saved quote is '#{savedQuote}'. \
-          Current quote is '#{currentQuote}'.)"
+        console.log "Could not apply position selector" +
+          " [#{selector.start}:#{selector.end}] to current document," +
+          " because the quote has changed." +
+          "(Saved quote is '#{savedQuote}'." +
+          " Current quote is '#{currentQuote}'.)"
         return null
       else
 #        console.log "Saved quote matches."

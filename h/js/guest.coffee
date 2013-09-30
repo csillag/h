@@ -131,8 +131,9 @@ class Annotator.Guest extends Annotator
     try
       console.log "Analyzing host frame, because " + reason + "..."
       r = this._scan()
-      scanTime = r.time
-      console.log "Traversal+scan took " + scanTime + " ms."
+      unless this.pdfMode
+        scanTime = r.time
+        console.log "Traversal+scan took " + scanTime + " ms."
     catch e
       console.log e.message
       console.log e.stack
@@ -145,7 +146,7 @@ class Annotator.Guest extends Annotator
           unless @selectedRanges?.length
             @panel?.notify method: 'back'
     this._setupMatching()
-    @domMatcher.setRootNode @wrapper[0]
+    unless this.pdfMode then @domMatcher.setRootNode @wrapper[0]
     this
 
   # These methods aren't used in the iframe-hosted configuration of Annotator.
