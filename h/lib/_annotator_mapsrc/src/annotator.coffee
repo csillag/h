@@ -270,8 +270,14 @@ class Annotator extends Delegator
       suffix: suffix
 
   getTextPositionSelector: (range) ->
-    startOffset = (@domMapper.getInfoForNode range.start).start
-    endOffset = (@domMapper.getInfoForNode range.end).end
+    if @pdfMode
+      startInfo = @pdfMapper.getInfoForNode range.start
+      endInfo = @pdfMapper.getInfoForNode range.end
+      startOffset = startInfo.node.start + startInfo.page.start
+      endOffset = endInfo.node.end + endInfo.page.start
+    else
+      startOffset = (@domMapper.getInfoForNode range.start).start
+      endOffset = (@domMapper.getInfoForNode range.end).end
 
     selector =
       type: "TextPositionSelector"
@@ -336,17 +342,13 @@ class Annotator extends Delegator
   #
   # Returns an Object containing a `source` property and a `selector` Array.
   getTargetFromRange: (range) ->
-    if @pdfMode
-      console.log "Creating selectors for PDF is not supported yet."
-      # TODO: implement selectors for PDF
-      selectors = [
-      ]
-    else
-      selectors = [
-        this.getRangeSelector range
-        this.getTextQuoteSelector range
-        this.getTextPositionSelector range
-      ]
+    selectors = []
+    unless @pdfMode then selectors.push this.getRangeSelector range
+    unless @pdfMode then selectors.push this.getTextQuoteSelector range
+    selectors.push this.getTextPositionSelector range
+
+    #console.log "Calculated selectors: "
+    #console.log selectors
 
     return source: this.getHref(), selector: selectors
 
@@ -416,7 +418,11 @@ class Annotator extends Delegator
     savedQuote = this.getQuoteForTarget target
     if savedQuote?
       # We have a saved quote, let's compare it to current content
-      content = @domMapper.getContentForCharRange selector.start, selector.end
+
+      content = if @pdfMode
+        @pdfMapper.getContentForCharRange selector.start, selector.end
+      else
+        @domMapper.getContentForCharRange selector.start, selector.end
       currentQuote = this.normalizeString content
       if currentQuote isnt savedQuote
         console.log "Could not apply position selector" +
@@ -431,8 +437,10 @@ class Annotator extends Delegator
       console.log "No saved quote, nothing to compare. Assume that it's okay."
 
     # OK, we have everything. Create a range from this.
-    mappings = this.domMapper.getMappingsForCharRange selector.start,
-        selector.end
+    mappings = if @pdfMode
+      @pdfMapper.getMappingsForCharRange selector.start, selector.end
+    else
+      @domMapper.getMappingsForCharRange selector.start, selector.end
     browserRange = new Range.BrowserRange mappings.realRange
     normalizedRange = browserRange.normalize @wrapper[0]
     range: normalizedRange
