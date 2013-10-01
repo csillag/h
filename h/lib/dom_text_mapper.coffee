@@ -2,7 +2,7 @@ class window.DomTextMapper
 
   USE_TABLE_TEXT_WORKAROUND = true
   USE_EMPTY_TEXT_WORKAROUND = true
-  SELECT_CHILDREN_INSTEAD = ["thead", "tbody", "ol", "a", "caption", "p", "span", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
+  SELECT_CHILDREN_INSTEAD = ["thead", "tbody", "ol", "a", "caption", "p", "span", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "form"]
   CONTEXT_LEN = 32
 
   @instances: []
@@ -417,7 +417,7 @@ class window.DomTextMapper
         console.log "Something seems to be wrong. I see visible content @ " +
             path + ", while some of the ancestor nodes reported empty contents.
  Probably a new selection API bug...."
-        
+        console.log "Anyway, text is '" + cont + "'."        
     else
       if verbose then console.log "Found no content at path " + path
       invisible = true
@@ -546,6 +546,7 @@ class window.DomTextMapper
 
     sel = @selectNode node
     text = @readSelectionText sel
+    if @postProcess? then text = @postProcess text
 
     if shouldRestoreSelection then @restoreSelection()
     text
