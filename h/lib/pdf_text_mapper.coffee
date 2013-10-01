@@ -20,11 +20,11 @@ class window.PDFTextMapper
     @_mapPage @pageInfo[pageIndex]
 
     # Announce the newly available page
-    @onPageReady @pageInfo[pageIndex]
+    @onPageReady pageIndex
 
   # Override point: this is called when a new page has become fully available
-  onPageReady: (info) ->
-    console.log "Page #" + info.index + " is ready!"
+  onPageReady: (index) ->
+    console.log "Page #" + index + " is ready!"
 
   setEvents: ->
     addEventListener "pagerender", @_onPageRendered
@@ -69,7 +69,7 @@ class window.PDFTextMapper
       @pageInfo.forEach (info, i) =>
         if @isPageRendered i
           @_mapPage info
-          setTimeout => @onPageReady info
+          setTimeout => @onPageReady i
 
     # Return the promise
     pendingScan
