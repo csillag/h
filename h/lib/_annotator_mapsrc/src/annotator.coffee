@@ -110,6 +110,39 @@ class Annotator extends Delegator
     # Create adder
     this.adder = $(this.html.adder).appendTo(@wrapper).hide()
 
+  _onPageReady: (info) =>
+    console.log "Document page #" + info.index + " has become available."
+    # Fetch the virtual anchors stored for this page
+
+    anchors = @virtualAnchors[info.index]
+    return unless anchors?
+
+    # Go over all anchors
+    for task in anchors
+      #console.log "Should attach:"
+      #console.log task
+
+      # First calculate the range
+      selector = task.anchor
+      mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
+      browserRange = new Range.BrowserRange mappings.realRange
+      range = browserRange.normalize @wrapper[0]
+
+      # We have the range. Add this to annotation
+      task.annotation.ranges.push range.serialize(@wrapper[0], '.annotator-hl')
+
+      # Create a highlight, and link it with the annotation
+      hl = this.highlightRange range
+      $(hl).data('annotation', task.annotation)
+      $.merge task.annotation.highlights, hl
+
+      console.log "Attached an annotation on page #" + info.index + ". (Quote: '" + task.anchor.quote + "')"
+
+  _addVirtualAnchor: (pageIndex, anchor) ->
+     @virtualAnchors[pageIndex] ?= []
+     @virtualAnchors[pageIndex].push anchor
+     console.log "Stored virtual anchor for page #" + pageIndex + ":"
+     console.log anchor
 
   # Initializes the components used for analyzing the DOM
   _setupMatching: ->
@@ -117,8 +150,8 @@ class Annotator extends Delegator
 
     if @pdfMode
       @docMapper = @pdfMapper = new PDFTextMapper()
-      @pdfMapper.onPageReady = (info) =>
-        console.log "Document page #" + info.index + " has become available. Should attach annotations."
+      @pdfMapper.onPageReady = @_onPageReady
+      @virtualAnchors = {}
     else
       @docMapper = @domMapper = new DomTextMapper()
       @domMatcher = new DomTextMatcher @domMapper
@@ -372,7 +405,11 @@ class Annotator extends Delegator
 
   # Try to determine the anchor position for a target
   # using the saved Range selector. The quote is verified.
-  findAnchorFromRangeSelector: (target) ->
+  findAnchorFromRangeSelector: (target, virtual) ->
+    if virtual
+#      console.log "Can't do virtual anchoring with a RangeSelector."
+      return null
+
     selector = this.findSelector target.selector, "RangeSelector"
     unless selector? then return null
 
@@ -402,7 +439,7 @@ class Annotator extends Delegator
 
   # Try to determine the anchor position for a target
   # using the saved position selector. The quote is verified.
-  findAnchorFromPositionSelector: (target) ->
+  findAnchorFromPositionSelector: (target, virtual) ->
     selector = this.findSelector target.selector, "TextPositionSelector"
     unless selector? then return null
     savedQuote = this.getQuoteForTarget target
@@ -423,12 +460,21 @@ class Annotator extends Delegator
     else
       console.log "No saved quote, nothing to compare. Assume that it's okay."
 
-    # OK, we have everything. Create a range from this.
-    mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
-    browserRange = new Range.BrowserRange mappings.realRange
-    normalizedRange = browserRange.normalize @wrapper[0]
-    range: normalizedRange
-    quote: savedQuote
+    # OK, we have everything.
+    if virtual
+      # Compile the data required to store this virtual anchor  
+      startPage: @docMapper.getPageIndexForPos selector.start
+      endPage: @docMapper.getPageIndexForPos selector.end
+      start: selector.start
+      end: selector.end
+      quote: savedQuote
+    else
+      # Create a range from this.
+      mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
+      browserRange = new Range.BrowserRange mappings.realRange
+      normalizedRange = browserRange.normalize @wrapper[0]
+      range: normalizedRange
+      quote: savedQuote
 
   findAnchorWithTwoPhaseFuzzyMatching: (target) ->
     # Fetch the quote and the context
@@ -526,11 +572,12 @@ class Annotator extends Delegator
   # Try to find the right anchoring point for a given target
   #
   # Returns a normalized range if succeeded, null otherwise
-  findAnchor: (target) ->
+  findAnchor: (target, virtual) ->
     unless target?
       throw new Error "Trying to find anchor for null target!"
 #    console.log "Trying to find anchor for target: "
 #    console.log target
+#    console.log "Virtual mode: " + virtual
 
     strategies = [
       # Simple strategy based on DOM Range
@@ -556,7 +603,7 @@ class Annotator extends Delegator
     anchor = null
     for fn in strategies
       try
-        anchor ?= fn.call this, target
+        anchor ?= fn.call this, target, virtual
       catch error
         unless error instanceof Range.RangeError
           throw error
@@ -590,6 +637,10 @@ class Annotator extends Delegator
 
     annotation.target or= (this.getTargetFromRange(r) for r in ranges)
 
+    virtual = @pdfMode
+
+#    console.log "setupAnnotation. Virtual mode: " + virtual
+
     unless annotation.target?
       throw new Error "Can not run setupAnnotation(). No target or selection available."
 
@@ -598,15 +649,22 @@ class Annotator extends Delegator
 
     for t in annotation.target
       try
-        {anchor, error} = this.findAnchor t
+        {anchor, error} = this.findAnchor t, virtual
         if error instanceof Range.RangeError
           this.publish('rangeNormalizeFail', [annotation, error.range, error])
         if anchor?
           t.quote = anchor.quote or $.trim(anchor.range.text())
           t.diffHTML = anchor.diffHTML
           t.diffCaseOnly = anchor.diffCaseOnly
-          normedRanges.push anchor.range
           annotation.quote.push t.quote
+          if virtual
+            for index in [anchor.startPage..anchor.endPage]
+              this._addVirtualAnchor index,
+                annotation: annotation
+                target: t
+                anchor: anchor
+          else
+            normedRanges.push anchor.range
         else
           console.log "Could not find anchor target for annotation '" +
               annotation.id + "'."

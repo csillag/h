@@ -63,19 +63,13 @@ class window.PDFTextMapper
         info.end = (pos += info.len + 1)
 
       # OK, we are ready to rock.
-      # pendingScan.resolve()
-      # TODO: this is the right time to call this. Enable after virtual
-      # anchoring is ready.
+      pendingScan.resolve()
 
       # Go over the pages again, and map the rendered ones
       @pageInfo.forEach (info, i) =>
         if @isPageRendered i
           @_mapPage info
-          @onPageReady info
-
-      # OK, we are ready to rock.
-      pendingScan.resolve()
-      # TODO: temporary call. Remove when enabling above call.
+          setTimeout => @onPageReady info
 
     # Return the promise
     pendingScan
@@ -150,10 +144,12 @@ class window.PDFTextMapper
     # Check out which pages are these on
     startIndex = @getPageIndexForPos start
     endIndex = @getPageIndexForPos end
+    #console.log "These are on pages [" + startIndex + "; " + endIndex + "]."
 
     # Are these all rendered?
     for index in [startIndex..endIndex]
       unless @isPageRendered index # If this is not rendered
+        console.log "Can not calculate mappings, because page #" + index + " is not rendered yet."
         return rendered: false     # give up
 
     # TODO: I saw a cross-page test fail once. Why?
