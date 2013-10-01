@@ -7,7 +7,7 @@
 ** Dual licensed under the MIT and GPLv3 licenses.
 ** https://github.com/okfn/annotator/blob/master/LICENSE
 **
-** Built at: 2013-10-01 10:52:19Z
+** Built at: 2013-10-01 11:02:01Z
 */
 
 
@@ -1020,18 +1020,9 @@
     };
 
     Annotator.prototype.getTargetFromRange = function(range) {
-      var selectors;
-      selectors = [];
-      if (!this.pdfMode) {
-        selectors.push(this.getRangeSelector(range));
-      }
-      selectors.push(this.getTextQuoteSelector(range));
-      selectors.push(this.getTextPositionSelector(range));
-      console.log("Calculated selectors: ");
-      console.log(selectors);
       return {
         source: this.getHref(),
-        selector: selectors
+        selector: [this.getRangeSelector(range), this.getTextQuoteSelector(range), this.getTextPositionSelector(range)]
       };
     };
 
@@ -1066,11 +1057,11 @@
       normalizedRange = Range.sniff(selector).normalize(this.wrapper[0]);
       savedQuote = this.getQuoteForTarget(target);
       if (savedQuote != null) {
-        startInfo = this.domMapper.getInfoForNode(normalizedRange.start);
+        startInfo = this.docMapper.getInfoForNode(normalizedRange.start);
         startOffset = startInfo.start;
-        endInfo = this.domMapper.getInfoForNode(normalizedRange.end);
+        endInfo = this.docMapper.getInfoForNode(normalizedRange.end);
         endOffset = endInfo.end;
-        content = this.domMapper.getContentForCharRange(startOffset, endOffset);
+        content = this.docMapper.getContentForCharRange(startOffset, endOffset);
         currentQuote = this.normalizeString(content);
         if (currentQuote !== savedQuote) {
           console.log("Could not apply XPath selector to current document           because the quote has changed. (Saved quote is '" + savedQuote + "'.           Current quote is '" + currentQuote + "'.)");
