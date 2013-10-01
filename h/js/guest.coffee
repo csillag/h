@@ -130,10 +130,7 @@ class Annotator.Guest extends Annotator
   scanDocument: (reason = "something happened") =>
     try
       console.log "Analyzing host frame, because " + reason + "..."
-      r = this._scan()
-      unless this.pdfMode
-        scanTime = r.time
-        console.log "Traversal+scan took " + scanTime + " ms."
+      this._scan()
     catch e
       console.log e.message
       console.log e.stack
