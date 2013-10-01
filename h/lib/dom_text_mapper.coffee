@@ -89,6 +89,7 @@ class window.DomTextMapper
 
     unless @pathStartNode.ownerDocument.body.contains @pathStartNode
       # We cannot map nodes that are not attached.
+#      console.log "This is not attached to dom. Exiting."
       return @path
 
 #    console.log "No valid cache, will have to do a scan."

@@ -117,6 +117,8 @@ class Annotator extends Delegator
 
     if @pdfMode
       @docMapper = @pdfMapper = new PDFTextMapper()
+      @pdfMapper.onPageReady = (info) =>
+        console.log "Document page #" + info.index + " has become available. Should attach annotations."
     else
       @docMapper = @domMapper = new DomTextMapper()
       @domMatcher = new DomTextMatcher @domMapper

@@ -5,17 +5,29 @@ class window.PDFTextMapper
   constructor: ->
     @setEvents()     
 
+  _onPageRendered: (evt) =>
+    # A new page was rendered
+    pageIndex = evt.detail.pageNumber - 1
+#    console.log "Allegedly rendered page #" + pageIndex
+
+    # Is it really rendered?
+    unless @isPageRendered pageIndex
+#      console.log "Page #" + pageIndex + " is not really rendered yet."
+      setTimeout (=> @_onPageRendered evt), 1000
+      return
+
+    # Collect info about the new DOM subtree
+    @_mapPage @pageInfo[pageIndex]
+
+    # Announce the newly available page
+    @onPageReady @pageInfo[pageIndex]
+
+  # Override point
+  onPageReady: (info) ->
+    console.log "Page #" + info.index + " is ready!"
+
   setEvents: ->
-    addEventListener("pagerender", (evt) =>
-      # A new page was rendered
-      pageIndex = evt.detail.pageNumber - 1
-      console.log "rendered page #" + pageIndex
-
-      # Collect info about the new DOM subtree
-      @_mapPage @pageInfo[pageIndex]
-
-      # TODO: do something about annotations pending for this page
-    )
+    addEventListener "pagerender", @_onPageRendered
 
   _extractionPattern: /[ ]/g
   _parseExtractedText: (text) => text.replace @_extractionPattern, ""
@@ -41,9 +53,11 @@ class window.PDFTextMapper
         info.len = info.content.length        
         info.start = pos
         info.end = (pos += info.len + 1)
-        if @isPageRendered i then @_mapPage info
-      console.log "Mappings calculated."
+        if @isPageRendered i
+          @_mapPage info
+          @onPageReady info
 
+      console.log "Mappings calculated."
     null
 
   # Get the page index for a given character position
@@ -56,11 +70,11 @@ class window.PDFTextMapper
 
   # Determine whether a given page has been rendered
   isPageRendered: (index) ->
-    return PDFView.pages[index]?.textLayer?
+    return PDFView.pages[index]?.textLayer?.renderingDone
 
   # Create the mappings for a given page    
   _mapPage: (info) ->
-    console.log "Mapping page #" + info.index        
+#    console.log "Mapping page #" + info.index + "..."
     info.domMapper = new DomTextMapper()
     if @_parseSelectedText?
       info.domMapper.postProcess = @_parseSelectedText
@@ -70,9 +84,7 @@ class window.PDFTextMapper
     info.domMatcher.scan()
     renderedContent = info.domMapper.path["."].content
     if renderedContent isnt info.content
-      console.log "Oops. Mismatch between rendered and extracted text!"
-      console.log "Extracted version: " + info.content
-      console.log "Rendered version: " + info.renderedContent
+      console.log "Oops. Mismatch between rendered and extracted text!" 
 
   # Look up the page for a given DOM node
   getPageForNode: (node) ->
