@@ -128,8 +128,8 @@ class Annotator extends Delegator
 
   # Perform a scan of the DOM. Required for finding anchors.
   _scan: ->
-    @docMapper.scan()
- 
+    @pendingScan = @docMapper.scan()
+
   # Wraps the children of @element in a @wrapper div. NOTE: This method will also
   # remove any script elements inside @element to prevent them re-executing.
   #
@@ -583,7 +583,6 @@ class Annotator extends Delegator
   #
   # Returns the initialised annotation.
   setupAnnotation: (annotation) ->
-    root = @wrapper[0]
     ranges = annotation.ranges or @selectedRanges or []
 
     # Upgrade format from v1.2.6 and earlier
@@ -697,7 +696,17 @@ class Annotator extends Delegator
         this.publish 'annotationsLoaded', [clone]
 
     clone = annotations.slice()
-    loader(annotations) if annotations.length
+
+    if annotations.length # Do we have to do something?
+      if @pendingScan?    # Is there a pending scan?
+        # Schedule the parsing the annotations for
+        # when scan has finished
+        @pendingScan.then =>
+          console.log "Document scan finished. Can start anchoring."
+          loader(annotations)
+      else # no pending scan
+        # We can start parsing them right away
+        loader annotations
     this
 
   # Public: Calls the Store#dumpAnnotations() method.

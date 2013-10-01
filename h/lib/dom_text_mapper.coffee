@@ -85,12 +85,12 @@ class window.DomTextMapper
     if @domStableSince @lastScanned
       # We have a valid paths structure!
 #      console.log "We have a valid DOM structure cache."
-      return @path
+      return
 
     unless @pathStartNode.ownerDocument.body.contains @pathStartNode
       # We cannot map nodes that are not attached.
 #      console.log "This is not attached to dom. Exiting."
-      return @path
+      return
 
 #    console.log "No valid cache, will have to do a scan."
     startTime = @timestamp()
@@ -111,7 +111,7 @@ class window.DomTextMapper
     t2 = @timestamp()    
 #    console.log "Phase II (offset calculation) took " + (t2 - t1) + " ms."
 
-    @path
+    null
  
   # Select the given path (for visual identification),
   # and optionally scroll to it

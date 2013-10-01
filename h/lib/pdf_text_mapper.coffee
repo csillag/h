@@ -8,11 +8,11 @@ class window.PDFTextMapper
   _onPageRendered: (evt) =>
     # A new page was rendered
     pageIndex = evt.detail.pageNumber - 1
-#    console.log "Allegedly rendered page #" + pageIndex
+    #console.log "Allegedly rendered page #" + pageIndex
 
     # Is it really rendered?
     unless @isPageRendered pageIndex
-#      console.log "Page #" + pageIndex + " is not really rendered yet."
+    #console.log "Page #" + pageIndex + " is not really rendered yet."
       setTimeout (=> @_onPageRendered evt), 1000
       return
 
@@ -22,7 +22,7 @@ class window.PDFTextMapper
     # Announce the newly available page
     @onPageReady @pageInfo[pageIndex]
 
-  # Override point
+  # Override point: this is called when a new page has become fully available
   onPageReady: (info) ->
     console.log "Page #" + info.index + " is ready!"
 
@@ -39,26 +39,46 @@ class window.PDFTextMapper
   scan: ->
     console.log "Scanning PDF for text..."
 
+    pendingScan = new PDFJS.Promise()
+
     # Tell the Find Controller to go digging
     PDFFindController.extractText()
 
     # When all the text has been extracted
     PDFJS.Promise.all(PDFFindController.extractTextPromises).then =>
-      console.log "Text extraction has finished."
+      # PDF.js text extraction has finished.
+
+      # Post-process the extracted text
       @pageInfo = ({ content: @_parseExtractedText page } for page in PDFFindController.pageContents)
+
+      # Join all the text together
       @corpus = (info.content for info in @pageInfo).join " "
+
+      # Go over the pages, and calculate some basic info
       pos = 0
       @pageInfo.forEach (info, i) =>
         info.index = i
         info.len = info.content.length        
         info.start = pos
         info.end = (pos += info.len + 1)
+
+      # OK, we are ready to rock.
+      # pendingScan.resolve()
+      # TODO: this is the right time to call this. Enable after virtual
+      # anchoring is ready.
+
+      # Go over the pages again, and map the rendered ones
+      @pageInfo.forEach (info, i) =>
         if @isPageRendered i
           @_mapPage info
           @onPageReady info
 
-      console.log "Mappings calculated."
-    null
+      # OK, we are ready to rock.
+      pendingScan.resolve()
+      # TODO: temporary call. Remove when enabling above call.
+
+    # Return the promise
+    pendingScan
 
   # Get the page index for a given character position
   getPageIndexForPos: (pos) ->
