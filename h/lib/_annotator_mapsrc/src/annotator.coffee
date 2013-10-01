@@ -333,15 +333,12 @@ class Annotator extends Delegator
   #
   # Returns an Object containing a `source` property and a `selector` Array.
   getTargetFromRange: (range) ->
-    selectors = []
-    unless @pdfMode then selectors.push this.getRangeSelector range
-    selectors.push this.getTextQuoteSelector range
-    selectors.push this.getTextPositionSelector range
-
-    console.log "Calculated selectors: "
-    console.log selectors
-
-    return source: this.getHref(), selector: selectors
+    source: this.getHref()
+    selector: [
+      this.getRangeSelector range
+      this.getTextQuoteSelector range
+      this.getTextPositionSelector range
+    ]
 
   # Public: Creates and returns a new annotation object. Publishes the
   # 'beforeAnnotationCreated' event to allow the new annotation to be modified.
@@ -383,11 +380,11 @@ class Annotator extends Delegator
     savedQuote = this.getQuoteForTarget target
     if savedQuote?
       # We have a saved quote, let's compare it to current content
-      startInfo = @domMapper.getInfoForNode normalizedRange.start
+      startInfo = @docMapper.getInfoForNode normalizedRange.start
       startOffset = startInfo.start
-      endInfo = @domMapper.getInfoForNode normalizedRange.end
+      endInfo = @docMapper.getInfoForNode normalizedRange.end
       endOffset = endInfo.end
-      content = @domMapper.getContentForCharRange startOffset, endOffset
+      content = @docMapper.getContentForCharRange startOffset, endOffset
       currentQuote = this.normalizeString content
       if currentQuote isnt savedQuote
         console.log "Could not apply XPath selector to current document \
