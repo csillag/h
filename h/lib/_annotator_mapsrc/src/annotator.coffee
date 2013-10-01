@@ -113,12 +113,12 @@ class Annotator extends Delegator
 
   # Initializes the components used for analyzing the DOM
   _setupMatching: ->
+    if @docMapper? then return
+
     if @pdfMode
-      if @pdfMapper? then return
-      @pdfMapper = new PDFTextMapper()
+      @docMapper = @pdfMapper = new PDFTextMapper()
     else
-      if @domMapper? then return
-      @domMapper = new DomTextMapper()
+      @docMapper = @domMapper = new DomTextMapper()
       @domMatcher = new DomTextMatcher @domMapper
       @domMapper.setRootNode @wrapper[0]
 
@@ -126,10 +126,7 @@ class Annotator extends Delegator
 
   # Perform a scan of the DOM. Required for finding anchors.
   _scan: ->
-    if @pdfMode
-      @pdfMapper.scan()
-    else
-      @domMatcher.scan()
+    @docMapper.scan()
  
   # Wraps the children of @element in a @wrapper div. NOTE: This method will also
   # remove any script elements inside @element to prevent them re-executing.
@@ -255,14 +252,14 @@ class Annotator extends Delegator
     rangeStart = range.start
     unless rangeStart?
       throw new Error "Called getTextQuoteSelector(range) on a range with no valid start."
-    startOffset = (@domMapper.getInfoForNode rangeStart).start
+    startOffset = (@docMapper.getInfoForNode rangeStart).start
     rangeEnd = range.end
     unless rangeEnd?
       throw new Error "Called getTextQuoteSelector(range) on a range with no valid end."
-    endOffset = (@domMapper.getInfoForNode rangeEnd).end
+    endOffset = (@docMapper.getInfoForNode rangeEnd).end
+    quote = @docMapper.getContentForCharRange startOffset, endOffset
+    [prefix, suffix] = @docMapper.getContextForCharRange startOffset, endOffset
 
-    quote = @domMapper.getContentForCharRange startOffset, endOffset
-    [prefix, suffix] = @domMapper.getContextForCharRange startOffset, endOffset
     selector =
       type: "TextQuoteSelector"
       exact: quote
@@ -270,14 +267,8 @@ class Annotator extends Delegator
       suffix: suffix
 
   getTextPositionSelector: (range) ->
-    if @pdfMode
-      startInfo = @pdfMapper.getInfoForNode range.start
-      endInfo = @pdfMapper.getInfoForNode range.end
-      startOffset = startInfo.node.start + startInfo.page.start
-      endOffset = endInfo.node.end + endInfo.page.start
-    else
-      startOffset = (@domMapper.getInfoForNode range.start).start
-      endOffset = (@domMapper.getInfoForNode range.end).end
+    startOffset = (@docMapper.getInfoForNode range.start).start
+    endOffset = (@docMapper.getInfoForNode range.end).end
 
     selector =
       type: "TextPositionSelector"
@@ -344,11 +335,11 @@ class Annotator extends Delegator
   getTargetFromRange: (range) ->
     selectors = []
     unless @pdfMode then selectors.push this.getRangeSelector range
-    unless @pdfMode then selectors.push this.getTextQuoteSelector range
+    selectors.push this.getTextQuoteSelector range
     selectors.push this.getTextPositionSelector range
 
-    #console.log "Calculated selectors: "
-    #console.log selectors
+    console.log "Calculated selectors: "
+    console.log selectors
 
     return source: this.getHref(), selector: selectors
 
@@ -419,10 +410,7 @@ class Annotator extends Delegator
     if savedQuote?
       # We have a saved quote, let's compare it to current content
 
-      content = if @pdfMode
-        @pdfMapper.getContentForCharRange selector.start, selector.end
-      else
-        @domMapper.getContentForCharRange selector.start, selector.end
+      content = @docMapper.getContentForCharRange selector.start, selector.end
       currentQuote = this.normalizeString content
       if currentQuote isnt savedQuote
         console.log "Could not apply position selector" +
@@ -437,10 +425,7 @@ class Annotator extends Delegator
       console.log "No saved quote, nothing to compare. Assume that it's okay."
 
     # OK, we have everything. Create a range from this.
-    mappings = if @pdfMode
-      @pdfMapper.getMappingsForCharRange selector.start, selector.end
-    else
-      @domMapper.getMappingsForCharRange selector.start, selector.end
+    mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
     browserRange = new Range.BrowserRange mappings.realRange
     normalizedRange = browserRange.normalize @wrapper[0]
     range: normalizedRange
