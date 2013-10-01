@@ -158,6 +158,11 @@ class Annotator.Guest extends Annotator
 
   showEditor: (annotation) => @plugins.Bridge.showEditor annotation
 
+  _onPageReady: (info) ->
+    console.log "Guest: _onPageReady"
+    super info
+    @plugins.Heatmap._update()
+
   checkForStartSelection: (event) =>
     # Override to prevent Annotator choking when this ties to access the
     # viewer but preserve the manipulation of the attribute `mouseIsDown` which
