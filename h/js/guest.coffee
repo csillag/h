@@ -143,7 +143,7 @@ class Annotator.Guest extends Annotator
           unless @selectedRanges?.length
             @panel?.notify method: 'back'
     this._setupMatching()
-    unless this.pdfMode then @domMatcher.setRootNode @wrapper[0]
+    unless this.isPDF() then @domMatcher.setRootNode @wrapper[0]
     this
 
   # These methods aren't used in the iframe-hosted configuration of Annotator.
@@ -158,9 +158,8 @@ class Annotator.Guest extends Annotator
 
   showEditor: (annotation) => @plugins.Bridge.showEditor annotation
 
-  _onPageReady: (info) ->
-    console.log "Guest: _onPageReady"
-    super info
+  onPhysicallyAnchored: (task) ->
+    super task
     @plugins.Heatmap._update()
 
   checkForStartSelection: (event) =>

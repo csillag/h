@@ -97,7 +97,6 @@ class Annotator extends Delegator
 
     # Return early if the annotator is not supported.
     return this unless Annotator.supported()
-    this.pdfMode = PDFView?.initialized ? false
     this._setupDocumentEvents() unless @options.readOnly
     this._setupWrapper()
     this._setupMatching() unless @options.noMatching
@@ -110,52 +109,80 @@ class Annotator extends Delegator
     # Create adder
     this.adder = $(this.html.adder).appendTo(@wrapper).hide()
 
-  _onPageReady: (info) =>
-    console.log "Document page #" + info.index + " has become available."
-    # Fetch the virtual anchors stored for this page
+  onPhysicallyAnchored: (task) ->
+    #console.log "Physically attached an annotation on page #" + task.anchor.startPage + ". (Quote: '" + task.anchor.quote + "')"
 
-    anchors = @virtualAnchors[info.index]
-    return unless anchors?
+  _physicallyAnchorAnnotation: (task) ->
+    if task.done
+      #console.log "This task is already done! Not attaching again."
+      return
+    #console.log "Should physically anchor:"
+    #console.log task
 
-    # Go over all anchors
+    # First calculate the range
+    selector = task.anchor
+    mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
+    browserRange = new Range.BrowserRange mappings.realRange
+    range = browserRange.normalize @wrapper[0]
+
+    # We have the range. Add this to annotation
+    task.annotation.ranges.push range.serialize(@wrapper[0], '.annotator-hl')
+
+    # Create a highlight, and link it with the annotation
+    hl = this.highlightRange range
+    $(hl).data('annotation', task.annotation)
+    $.merge task.annotation.highlights, hl
+
+    # Mark this task as done
+    task.done = true
+    this.onPhysicallyAnchored task
+
+  _physicallyAnchorPage: (index) ->
+    #console.log "Doing physical anchoring for page #" + index + "..."
+
+    unless @docMapper.isPageRendered index
+      console.log  "Page #" + index + " has not been rendered yet, so not anchoring."
+      return
+
+    anchors = @virtualAnchors[index]
+    unless anchors?
+      #console.log "No virtual anchors for page #" + index + "."
+      return
+
+    # Go over all virtual anchoring tasks
     for task in anchors
-      #console.log "Should attach:"
-      #console.log task
+      this._physicallyAnchorAnnotation task           
 
-      # First calculate the range
-      selector = task.anchor
-      mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
-      browserRange = new Range.BrowserRange mappings.realRange
-      range = browserRange.normalize @wrapper[0]
+  _taskIndex: 0
 
-      # We have the range. Add this to annotation
-      task.annotation.ranges.push range.serialize(@wrapper[0], '.annotator-hl')
-
-      # Create a highlight, and link it with the annotation
-      hl = this.highlightRange range
-      $(hl).data('annotation', task.annotation)
-      $.merge task.annotation.highlights, hl
-
-      console.log "Attached an annotation on page #" + info.index + ". (Quote: '" + task.anchor.quote + "')"
-
-  _addVirtualAnchor: (pageIndex, anchor) ->
+  _addVirtualAnchor: (pageIndex, task) ->
+     task.taskIndex = @_taskIndex += 1
      @virtualAnchors[pageIndex] ?= []
-     @virtualAnchors[pageIndex].push anchor
-     console.log "Stored virtual anchor for page #" + pageIndex + ":"
-     console.log anchor
+     @virtualAnchors[pageIndex].push task
+     #console.log "Stored virtual anchor for page #" + pageIndex + ":"
+     #console.log task
+
+     # Is this page already available?
+     if @docMapper.isPageRendered pageIndex
+       setTimeout => this._physicallyAnchorAnnotation task
+
+  # Are we working with a PDF document?
+  isPDF: -> PDFView?.initialized ? false
 
   # Initializes the components used for analyzing the DOM
   _setupMatching: ->
     if @docMapper? then return
 
-    if @pdfMode
+    if @isPDF()
       @docMapper = @pdfMapper = new PDFTextMapper()
-      @pdfMapper.onPageReady = @_onPageReady
+      @pdfMapper.onPageReady = (index) => @_physicallyAnchorPage index
+      @virtualAnchoring = true
       @virtualAnchors = {}
     else
       @docMapper = @domMapper = new DomTextMapper()
       @domMatcher = new DomTextMatcher @domMapper
       @domMapper.setRootNode @wrapper[0]
+      @virtualAnchoring = false
 
     this
 
@@ -405,8 +432,8 @@ class Annotator extends Delegator
 
   # Try to determine the anchor position for a target
   # using the saved Range selector. The quote is verified.
-  findAnchorFromRangeSelector: (target, virtual) ->
-    if virtual
+  findAnchorFromRangeSelector: (target) ->
+    if @virtualAnchoring
 #      console.log "Can't do virtual anchoring with a RangeSelector."
       return null
 
@@ -439,7 +466,7 @@ class Annotator extends Delegator
 
   # Try to determine the anchor position for a target
   # using the saved position selector. The quote is verified.
-  findAnchorFromPositionSelector: (target, virtual) ->
+  findAnchorFromPositionSelector: (target) ->
     selector = this.findSelector target.selector, "TextPositionSelector"
     unless selector? then return null
     savedQuote = this.getQuoteForTarget target
@@ -461,7 +488,7 @@ class Annotator extends Delegator
       console.log "No saved quote, nothing to compare. Assume that it's okay."
 
     # OK, we have everything.
-    if virtual
+    if @virtualAnchoring
       # Compile the data required to store this virtual anchor  
       startPage: @docMapper.getPageIndexForPos selector.start
       endPage: @docMapper.getPageIndexForPos selector.end
@@ -572,7 +599,7 @@ class Annotator extends Delegator
   # Try to find the right anchoring point for a given target
   #
   # Returns a normalized range if succeeded, null otherwise
-  findAnchor: (target, virtual) ->
+  findAnchor: (target) ->
     unless target?
       throw new Error "Trying to find anchor for null target!"
 #    console.log "Trying to find anchor for target: "
@@ -603,7 +630,7 @@ class Annotator extends Delegator
     anchor = null
     for fn in strategies
       try
-        anchor ?= fn.call this, target, virtual
+        anchor ?= fn.call this, target
       catch error
         unless error instanceof Range.RangeError
           throw error
@@ -637,10 +664,6 @@ class Annotator extends Delegator
 
     annotation.target or= (this.getTargetFromRange(r) for r in ranges)
 
-    virtual = @pdfMode
-
-#    console.log "setupAnnotation. Virtual mode: " + virtual
-
     unless annotation.target?
       throw new Error "Can not run setupAnnotation(). No target or selection available."
 
@@ -649,7 +672,7 @@ class Annotator extends Delegator
 
     for t in annotation.target
       try
-        {anchor, error} = this.findAnchor t, virtual
+        {anchor, error} = this.findAnchor t
         if error instanceof Range.RangeError
           this.publish('rangeNormalizeFail', [annotation, error.range, error])
         if anchor?
@@ -657,7 +680,7 @@ class Annotator extends Delegator
           t.diffHTML = anchor.diffHTML
           t.diffCaseOnly = anchor.diffCaseOnly
           annotation.quote.push t.quote
-          if virtual
+          if @virtualAnchoring
             for index in [anchor.startPage..anchor.endPage]
               this._addVirtualAnchor index,
                 annotation: annotation
@@ -760,8 +783,8 @@ class Annotator extends Delegator
         # Schedule the parsing the annotations for
         # when scan has finished
         @pendingScan.then =>
-          console.log "Document scan finished. Can start anchoring."
-          loader(annotations)
+          #console.log "Document scan finished. Can start anchoring."
+          loader annotations
       else # no pending scan
         # We can start parsing them right away
         loader annotations
