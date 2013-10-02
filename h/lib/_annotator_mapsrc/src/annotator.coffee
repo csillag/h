@@ -120,7 +120,7 @@ class Annotator extends Delegator
 
     # First calculate the range
     selector = task.anchor
-    mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
+    mappings = @domMapper.getMappingsForCharRange selector.start, selector.end
     browserRange = new Range.BrowserRange mappings.realRange
     range = browserRange.normalize @wrapper[0]
 
@@ -139,7 +139,7 @@ class Annotator extends Delegator
   _physicallyAnchorPage: (index) ->
     #console.log "Doing physical anchoring for page #" + index + "..."
 
-    unless @docMapper.isPageRendered index
+    unless @domMapper.isPageRendered index
       console.log  "Page #" + index + " has not been rendered yet, so not anchoring."
       return
 
@@ -162,12 +162,12 @@ class Annotator extends Delegator
      #console.log task
 
      # Is this page already available?
-     if @docMapper.isPageRendered pageIndex
+     if @domMapper.isPageRendered pageIndex
        setTimeout => this._physicallyAnchorAnnotation task
 
   # Initializes the components used for analyzing the DOM
   _setupMatching: ->
-    if @docMapper? then return
+    if @domMapper? then return
 
     strategies = [
       # Strategy to handle PDF documents rendered by PDF.js
@@ -175,7 +175,7 @@ class Annotator extends Delegator
       mapper: PDFTextMapper
       matcher: PDFTextMatcher
       init: =>
-        @docMapper.onPageReady = (index) => @_physicallyAnchorPage index
+        @domMapper.onPageReady = (index) => @_physicallyAnchorPage index
     ,
       # Default strategy for simple HTML documents.
       # Also the generic fallback.
@@ -183,7 +183,7 @@ class Annotator extends Delegator
       mapper: DomTextMapper
       matcher: DomTextMatcher,
       init:  =>
-        @docMapper.setRootNode @wrapper[0]
+        @domMapper.setRootNode @wrapper[0]
     ]
 
     # Go over the available strategies
@@ -191,8 +191,8 @@ class Annotator extends Delegator
       if s.mapper.applicable() # Can we use this strategy for this document?
         @strategy = s
         console.log "Selected document access strategy: " + s.name
-        @docMapper = new s.mapper()
-        @docMatcher = new s.matcher @docMapper
+        @domMapper = new s.mapper()
+        @domMatcher = new s.matcher @domMapper
         @virtualAnchoring = s.mapper.requiresVirtualAnchoring ? false
         if @virtualAnchoring then @virtualAnchors = {}
         s.init()
@@ -200,7 +200,7 @@ class Annotator extends Delegator
 
   # Perform a scan of the DOM. Required for finding anchors.
   _scan: ->
-    @pendingScan = @docMapper.scan()
+    @pendingScan = @domMapper.scan()
 
   # Wraps the children of @element in a @wrapper div. NOTE: This method will also
   # remove any script elements inside @element to prevent them re-executing.
@@ -326,13 +326,13 @@ class Annotator extends Delegator
     rangeStart = range.start
     unless rangeStart?
       throw new Error "Called getTextQuoteSelector(range) on a range with no valid start."
-    startOffset = (@docMapper.getInfoForNode rangeStart).start
+    startOffset = (@domMapper.getInfoForNode rangeStart).start
     rangeEnd = range.end
     unless rangeEnd?
       throw new Error "Called getTextQuoteSelector(range) on a range with no valid end."
-    endOffset = (@docMapper.getInfoForNode rangeEnd).end
-    quote = @docMapper.getContentForCharRange startOffset, endOffset
-    [prefix, suffix] = @docMapper.getContextForCharRange startOffset, endOffset
+    endOffset = (@domMapper.getInfoForNode rangeEnd).end
+    quote = @domMapper.getContentForCharRange startOffset, endOffset
+    [prefix, suffix] = @domMapper.getContextForCharRange startOffset, endOffset
 
     selector =
       type: "TextQuoteSelector"
@@ -341,8 +341,8 @@ class Annotator extends Delegator
       suffix: suffix
 
   getTextPositionSelector: (range) ->
-    startOffset = (@docMapper.getInfoForNode range.start).start
-    endOffset = (@docMapper.getInfoForNode range.end).end
+    startOffset = (@domMapper.getInfoForNode range.start).start
+    endOffset = (@domMapper.getInfoForNode range.end).end
 
     selector =
       type: "TextPositionSelector"
@@ -458,11 +458,11 @@ class Annotator extends Delegator
     savedQuote = this.getQuoteForTarget target
     if savedQuote?
       # We have a saved quote, let's compare it to current content
-      startInfo = @docMapper.getInfoForNode normalizedRange.start
+      startInfo = @domMapper.getInfoForNode normalizedRange.start
       startOffset = startInfo.start
-      endInfo = @docMapper.getInfoForNode normalizedRange.end
+      endInfo = @domMapper.getInfoForNode normalizedRange.end
       endOffset = endInfo.end
-      content = @docMapper.getContentForCharRange startOffset, endOffset
+      content = @domMapper.getContentForCharRange startOffset, endOffset
       currentQuote = this.normalizeString content
       if currentQuote isnt savedQuote
         console.log "Could not apply XPath selector to current document \
@@ -485,7 +485,7 @@ class Annotator extends Delegator
     if savedQuote?
       # We have a saved quote, let's compare it to current content
 
-      content = @docMapper.getContentForCharRange selector.start, selector.end
+      content = @domMapper.getContentForCharRange selector.start, selector.end
       currentQuote = this.normalizeString content
       if currentQuote isnt savedQuote
         console.log "Could not apply position selector" +
@@ -502,14 +502,14 @@ class Annotator extends Delegator
     # OK, we have everything.
     if @virtualAnchoring
       # Compile the data required to store this virtual anchor  
-      startPage: @docMapper.getPageIndexForPos selector.start
-      endPage: @docMapper.getPageIndexForPos selector.end
+      startPage: @domMapper.getPageIndexForPos selector.start
+      endPage: @domMapper.getPageIndexForPos selector.end
       start: selector.start
       end: selector.end
       quote: savedQuote
     else
       # Create a range from this.
-      mappings = @docMapper.getMappingsForCharRange selector.start, selector.end
+      mappings = @domMapper.getMappingsForCharRange selector.start, selector.end
       browserRange = new Range.BrowserRange mappings.realRange
       normalizedRange = browserRange.normalize @wrapper[0]
       range: normalizedRange
@@ -536,7 +536,7 @@ class Annotator extends Delegator
       patternMatchThreshold: 0.5
       flexContext: true
     result = @domMatcher.searchFuzzyWithContext prefix, suffix, quote,
-      expectedStart, expectedEnd, false, null, options
+      expectedStart, expectedEnd, false, options
 
     # If we did not got a result, give up
     unless result.matches.length
@@ -548,18 +548,26 @@ class Annotator extends Delegator
     console.log "2-phase fuzzy found match:"
     console.log match
 
-    # convert it to a Range
-    browserRange = new Range.BrowserRange match.realRange
-    normalizedRange = browserRange.normalize @wrapper[0]
+    # OK, we have everything 
+    if @virtualAnchoring
+      # Compile the data required to store this virtual anchor          
+      start: match.start
+      end: match.end
+      startPage: @domMapper.getPageIndexForPos match.start
+      endPage: @domMapper.getPageIndexForPos match.end
+      quote: match.found
+      diffHTML: unless match.exact then match.comparison.diffHTML
+      diffCaseOnly: unless match.exact then match.exactExceptCase
+    else 
+      # convert it to a Range
+      browserRange = new Range.BrowserRange match.realRange
+      normalizedRange = browserRange.normalize @wrapper[0]
 
-    # return the anchor
-    anchor =
+      # return the anchor
       range: normalizedRange
       quote: unless match.exact then match.found
       diffHTML: unless match.exact then match.comparison.diffHTML
       diffCaseOnly: unless match.exact then match.exactExceptCase
-
-    anchor
 
   findAnchorWithFuzzyMatching: (target) ->
     # Fetch the quote
@@ -583,7 +591,7 @@ class Annotator extends Delegator
     options =
       matchDistance: len * 2
       withFuzzyComparison: true
-    result = @domMatcher.searchFuzzy quote, expectedStart, false, null, options
+    result = @domMatcher.searchFuzzy quote, expectedStart, false, options
 
     # If we did not got a result, give up
     unless result.matches.length
@@ -620,12 +628,12 @@ class Annotator extends Delegator
 
     strategies = [
       # Simple strategy based on DOM Range
-      this.findAnchorFromRangeSelector
+#      this.findAnchorFromRangeSelector
 
       # Position-based strategy. (The quote is verified.)
       # This can handle document structure changes,
       # but not the content changes.
-      this.findAnchorFromPositionSelector
+#      this.findAnchorFromPositionSelector
 
       # Two-phased fuzzy text matching strategy. (Using context and quote.)
       # This can handle document structure changes,

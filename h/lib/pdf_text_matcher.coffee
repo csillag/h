@@ -1,4 +1,6 @@
-class window.PDFTextMatcher
+class window.PDFTextMatcher extends DTM_Core
 
-  test: ->
-    console.log "This is PDF text matcher."
+  constructor: (mapper) ->
+    super    
+
+
