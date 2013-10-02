@@ -60,6 +60,9 @@ class Annotator.Guest extends Annotator
       if not @plugins[name]
         this.addPlugin(name, opts)
 
+    this.subscribe "annotationPhysicallyAnchored", =>
+      @plugins.Heatmap._update()
+
     # Scan the document text with the DOM Text libraries
     this.scanDocument "Annotator initialized"
 
@@ -143,7 +146,8 @@ class Annotator.Guest extends Annotator
           unless @selectedRanges?.length
             @panel?.notify method: 'back'
     this._setupMatching()
-    unless this.isPDF() then @domMatcher.setRootNode @wrapper[0]
+    if @strategy.name is "DOM generic"
+       @docMatcher.setRootNode @wrapper[0]
     this
 
   # These methods aren't used in the iframe-hosted configuration of Annotator.
@@ -157,10 +161,6 @@ class Annotator.Guest extends Annotator
     @panel?.notify method: "updateViewer", params: (a.id for a in annotations)
 
   showEditor: (annotation) => @plugins.Bridge.showEditor annotation
-
-  onPhysicallyAnchored: (task) ->
-    super task
-    @plugins.Heatmap._update()
 
   checkForStartSelection: (event) =>
     # Override to prevent Annotator choking when this ties to access the

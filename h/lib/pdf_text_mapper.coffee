@@ -1,6 +1,11 @@
 class window.PDFTextMapper
 
   CONTEXT_LEN = 32
+
+  # Are we working with a PDF document?
+  @applicable: -> PDFView?.initialized ? false
+
+  @requiresVirtualAnchoring: true
         
   constructor: ->
     @setEvents()     
