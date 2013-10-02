@@ -42,7 +42,7 @@ class window.PDFTextMapper
 
   # Extract the text from the PDF, and store the char offset <--> page mapping
   scan: ->
-    console.log "Scanning PDF for text..."
+    console.log "Scanning document for text..."
 
     pendingScan = new PDFJS.Promise()
 
@@ -57,7 +57,7 @@ class window.PDFTextMapper
       @pageInfo = ({ content: @_parseExtractedText page } for page in PDFFindController.pageContents)
 
       # Join all the text together
-      @corpus = (info.content for info in @pageInfo).join " "
+      @_corpus = (info.content for info in @pageInfo).join " "
 
       # Go over the pages, and calculate some basic info
       pos = 0
@@ -181,12 +181,16 @@ class window.PDFTextMapper
     mappings
 
   getContentForCharRange: (start, end) ->
-    text = @corpus.substr start, end - start
+    text = @_corpus.substr start, end - start
     text.trim()
 
   getContextForCharRange: (start, end) ->
     prefixStart = Math.max 0, start - CONTEXT_LEN
     prefixLen = start - prefixStart
-    prefix = @corpus.substr prefixStart, prefixLen
-    suffix = @corpus.substr end, prefixLen
+    prefix = @_corpus.substr prefixStart, prefixLen
+    suffix = @_corpus.substr end, prefixLen
     [prefix.trim(), suffix.trim()]
+
+  getCorpus: -> @_corpus
+
+  getDocLength: -> @_corpus.length

@@ -107,8 +107,8 @@ class window.DomTextMapper
     @collectPositions node, path, null, 0, 0
     @restoreSelection()
     @lastScanned = @timestamp()
-    @corpus = @path[path].content
-#    console.log "Corpus is: " + @corpus
+    @_corpus = @path[path].content
+#    console.log "Corpus is: " + @_corpus
 
     t2 = @timestamp()    
 #    console.log "Phase II (offset calculation) took " + (t2 - t1) + " ms."
@@ -229,6 +229,8 @@ class window.DomTextMapper
     @path[path].length
 
   getDocLength: -> @getLengthForPath()
+
+  getCorpus: -> @_corpus
 
   # Return a given charRange of the rendered value of a part of the dom.
   # If path is not given, the default path is used.
