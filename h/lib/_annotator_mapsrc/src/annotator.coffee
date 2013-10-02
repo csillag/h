@@ -109,8 +109,7 @@ class Annotator extends Delegator
     # Create adder
     this.adder = $(this.html.adder).appendTo(@wrapper).hide()
 
-  onPhysicallyAnchored: (task) ->
-    #console.log "Physically attached an annotation on page #" + task.anchor.startPage + ". (Quote: '" + task.anchor.quote + "')"
+  # Physical anchoring
 
   _physicallyAnchorAnnotation: (task) ->
     if task.done
@@ -135,7 +134,7 @@ class Annotator extends Delegator
 
     # Mark this task as done
     task.done = true
-    this.onPhysicallyAnchored task
+    this.publish 'annotationPhysicallyAnchored', task
 
   _physicallyAnchorPage: (index) ->
     #console.log "Doing physical anchoring for page #" + index + "..."
@@ -166,25 +165,38 @@ class Annotator extends Delegator
      if @docMapper.isPageRendered pageIndex
        setTimeout => this._physicallyAnchorAnnotation task
 
-  # Are we working with a PDF document?
-  isPDF: -> PDFView?.initialized ? false
-
   # Initializes the components used for analyzing the DOM
   _setupMatching: ->
     if @docMapper? then return
 
-    if @isPDF()
-      @docMapper = @pdfMapper = new PDFTextMapper()
-      @pdfMapper.onPageReady = (index) => @_physicallyAnchorPage index
-      @virtualAnchoring = true
-      @virtualAnchors = {}
-    else
-      @docMapper = @domMapper = new DomTextMapper()
-      @domMatcher = new DomTextMatcher @domMapper
-      @domMapper.setRootNode @wrapper[0]
-      @virtualAnchoring = false
+    strategies = [
+      # Strategy to handle PDF documents rendered by PDF.js
+      name: "PDF.js"
+      mapper: PDFTextMapper
+      matcher: PDFTextMatcher
+      init: =>
+        @docMapper.onPageReady = (index) => @_physicallyAnchorPage index
+    ,
+      # Default strategy for simple HTML documents.
+      # Also the generic fallback.
+      name: "DOM generic"
+      mapper: DomTextMapper
+      matcher: DomTextMatcher,
+      init:  =>
+        @docMapper.setRootNode @wrapper[0]
+    ]
 
-    this
+    # Go over the available strategies
+    for s in strategies
+      if s.mapper.applicable() # Can we use this strategy for this document?
+        @strategy = s
+        console.log "Selected document access strategy: " + s.name
+        @docMapper = new s.mapper()
+        @docMatcher = new s.matcher @docMapper
+        @virtualAnchoring = s.mapper.requiresVirtualAnchoring ? false
+        if @virtualAnchoring then @virtualAnchors = {}
+        s.init()
+        return this
 
   # Perform a scan of the DOM. Required for finding anchors.
   _scan: ->
