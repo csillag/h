@@ -138,7 +138,7 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
       mapper = @annotator.domMapper
       firstPage = 0
       currentPage = mapper.getPageIndex()
-      lastPage = mapper.getPages() - 1
+      lastPage = mapper.getPageCount() - 1
 
       # Collect the pending virtual anchors from above and below
       this._collectPendingVirtualAnnotations 0, currentPage-1, above

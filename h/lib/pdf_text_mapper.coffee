@@ -224,4 +224,4 @@ class window.PDFTextMapper
 
   setPageIndex: (index) -> PDFView.page = index + 1
 
-  getPages: -> PDFView.pages.length
+  getPageCount: -> PDFView.pages.length
