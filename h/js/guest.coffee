@@ -64,6 +64,10 @@ class Annotator.Guest extends Annotator
       if task.annotation.id? # Is this a finished annotation ?
         @plugins.Heatmap._update()
 
+    this.subscribe "annotationPhysicallyUnAnchored", (task) =>
+      if task.annotation.id? # Is this a finished annotation ?
+        @plugins.Heatmap._update()
+
     # Scan the document text with the DOM Text libraries
     this.scanDocument "Annotator initialized"
 
