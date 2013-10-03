@@ -10,29 +10,51 @@ class window.PDFTextMapper
   constructor: ->
     @setEvents()     
 
-  _onPageRendered: (evt) =>
-    # A new page was rendered
-    pageIndex = evt.detail.pageNumber - 1
-    #console.log "Allegedly rendered page #" + pageIndex
+  # A new page was rendered
+  _onPageRendered: (index) =>
+    #console.log "Allegedly rendered page #" + index
 
     # Is it really rendered?
-    unless @isPageRendered pageIndex
-    #console.log "Page #" + pageIndex + " is not really rendered yet."
-      setTimeout (=> @_onPageRendered evt), 1000
+    unless @isPageRendered index
+    #console.log "Page #" + index + " is not really rendered yet."
+      setTimeout (=> @_onPageRendered index), 1000
       return
 
     # Collect info about the new DOM subtree
-    @_mapPage @pageInfo[pageIndex]
+    @_mapPage @pageInfo[index]
 
     # Announce the newly available page
-    @onPageReady pageIndex
+    @onPageReady index
+
+  _onPageUnrendered: (index) ->
+    #console.log "Page #" + index + " was un-rendered!"
+
+    # Forget info about the new DOM subtree
+    @_unmapPage @pageInfo[index]
+
+    # Announce the unavailable page
+    @onPageDeleted index
 
   # Override point: this is called when a new page has become fully available
   onPageReady: (index) ->
     console.log "Page #" + index + " is ready!"
 
+  # Override point: this is called when a page was deleted (un-rendered)
+  onPageDeleted: (index) ->
+    console.log "Page #" + index + " was deleted!"
+
   setEvents: ->
-    addEventListener "pagerender", @_onPageRendered
+    # Detect page rendering
+    addEventListener "pagerender", (evt) =>
+      index = evt.detail.pageNumber - 1
+      @_onPageRendered index
+
+    # Detect page un-rendering
+    addEventListener "DOMNodeRemoved", (evt) =>
+      node = evt.target
+      if node.nodeType is Node.ELEMENT_NODE and node.nodeName is "div" and node.className is "textLayer"
+        index = parseInt node.parentNode.id.substr(13) - 1
+        @_onPageUnrendered index
 
   _extractionPattern: /[ ]/g
   _parseExtractedText: (text) => text.replace @_extractionPattern, ""
@@ -103,7 +125,12 @@ class window.PDFTextMapper
     info.domMatcher.scan()
     renderedContent = info.domMapper.path["."].content
     if renderedContent isnt info.content
-      console.log "Oops. Mismatch between rendered and extracted text!" 
+      console.log "Oops. Mismatch between rendered and extracted text!"
+
+  # Delete the mappings for a given page
+  _unmapPage: (info) ->
+    delete info.domMatcher
+    delete info.domMapper
 
   # Look up the page for a given DOM node
   getPageForNode: (node) ->
