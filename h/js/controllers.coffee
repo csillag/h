@@ -452,7 +452,7 @@ class App
         sockmsg =
           filter: filter
           clientID: annotator.clientID
-        console.log sockmsg
+        # console.log sockmsg
         $scope.updater.send JSON.stringify sockmsg
 
       $scope.updater.onclose = =>
