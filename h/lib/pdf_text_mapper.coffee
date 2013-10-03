@@ -23,25 +23,11 @@ class window.PDFTextMapper
     # Collect info about the new DOM subtree
     @_mapPage @pageInfo[index]
 
-    # Announce the newly available page
-    @onPageReady index
-
   _onPageUnrendered: (index) ->
     #console.log "Page #" + index + " was un-rendered!"
 
     # Forget info about the new DOM subtree
     @_unmapPage @pageInfo[index]
-
-    # Announce the unavailable page
-    @onPageDeleted index
-
-  # Override point: this is called when a new page has become fully available
-  onPageReady: (index) ->
-    console.log "Page #" + index + " is ready!"
-
-  # Override point: this is called when a page was deleted (un-rendered)
-  onPageDeleted: (index) ->
-    console.log "Page #" + index + " was deleted!"
 
   setEvents: ->
     # Detect page rendering
@@ -96,7 +82,6 @@ class window.PDFTextMapper
       @pageInfo.forEach (info, i) =>
         if @isPageRendered i
           @_mapPage info
-          setTimeout => @onPageReady i
 
     # Return the promise
     pendingScan
@@ -127,10 +112,23 @@ class window.PDFTextMapper
     if renderedContent isnt info.content
       console.log "Oops. Mismatch between rendered and extracted text!"
 
+    # Announce the newly available page
+    setTimeout ->
+      event = document.createEvent "UIEvents"
+      event.initUIEvent "pdfPageMapped", false, false, window, 0
+      event.pageIndex = info.index
+      window.dispatchEvent event
+
   # Delete the mappings for a given page
   _unmapPage: (info) ->
     delete info.domMatcher
     delete info.domMapper
+
+    # Announce the unavailable page
+    event = document.createEvent "UIEvents"
+    event.initUIEvent "pdfPageUnmapped", false, false, window, 0
+    event.pageIndex = info.index
+    window.dispatchEvent event
 
   # Look up the page for a given DOM node
   getPageForNode: (node) ->
