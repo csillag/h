@@ -7,7 +7,7 @@
 ** Dual licensed under the MIT and GPLv3 licenses.
 ** https://github.com/okfn/annotator/blob/master/LICENSE
 **
-** Built at: 2013-10-02 17:48:38Z
+** Built at: 2013-10-03 11:46:03Z
 */
 
 
@@ -1246,7 +1246,7 @@
     };
 
     Annotator.prototype.findAnchorWithFuzzyMatching = function(target) {
-      var anchor, browserRange, expectedStart, len, match, normalizedRange, options, posSelector, quote, quoteSelector, result;
+      var browserRange, expectedStart, len, match, normalizedRange, options, posSelector, quote, quoteSelector, result;
       quoteSelector = this.findSelector(target.selector, "TextQuoteSelector");
       quote = quoteSelector != null ? quoteSelector.exact : void 0;
       if (quote == null) {
@@ -1270,15 +1270,26 @@
       match = result.matches[0];
       console.log("1-phase fuzzy found match:");
       console.log(match);
-      browserRange = new Range.BrowserRange(match.realRange);
-      normalizedRange = browserRange.normalize(this.wrapper[0]);
-      anchor = {
-        range: normalizedRange,
-        quote: !match.exact ? match.found : void 0,
-        diffHTML: !match.exact ? match.comparison.diffHTML : void 0,
-        diffCaseOnly: !match.exact ? match.exactExceptCase : void 0
-      };
-      return anchor;
+      if (this.virtualAnchoring) {
+        return {
+          start: match.start,
+          end: match.end,
+          startPage: this.domMapper.getPageIndexForPos(match.start),
+          endPage: this.domMapper.getPageIndexForPos(match.end),
+          quote: match.found,
+          diffHTML: !match.exact ? match.comparison.diffHTML : void 0,
+          diffCaseOnly: !match.exact ? match.exactExceptCase : void 0
+        };
+      } else {
+        browserRange = new Range.BrowserRange(match.realRange);
+        normalizedRange = browserRange.normalize(this.wrapper[0]);
+        return {
+          range: normalizedRange,
+          quote: match.found,
+          diffHTML: !match.exact ? match.comparison.diffHTML : void 0,
+          diffCaseOnly: !match.exact ? match.exactExceptCase : void 0
+        };
+      }
     };
 
     Annotator.prototype.findAnchor = function(target) {
