@@ -219,3 +219,9 @@ class window.PDFTextMapper
   getCorpus: -> @_corpus
 
   getDocLength: -> @_corpus.length
+
+  getPageIndex: -> PDFView.page - 1
+
+  setPageIndex: (index) -> PDFView.page = index + 1
+
+  getPages: -> PDFView.pages.length
