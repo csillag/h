@@ -1,5 +1,5 @@
 # Generic common ancestor for all matcher classes
-class window.DTM_Core
+class window.DTM_MatcherCore
   constructor: (mapper) ->
     @mapper = mapper
 
@@ -286,7 +286,7 @@ class window.DTM_Core
       @dmp = new window.DTM_DMPMatcher
 
 
-class window.DomTextMatcher extends DTM_Core
+class window.DomTextMatcher extends DTM_MatcherCore
   # ===== Public methods =======
 
   # Consider only the sub-tree beginning with the given node.
