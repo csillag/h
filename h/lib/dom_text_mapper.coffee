@@ -348,7 +348,9 @@ class window.DomTextMapper
         endInfo: endInfo
       safeParent: r.commonAncestorContainer
     }
-    result
+
+    # Return the result
+    sections: [result]
 
   # ===== Private methods (never call from outside the module) =======
 
