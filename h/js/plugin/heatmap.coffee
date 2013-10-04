@@ -115,12 +115,12 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
     .interpolate(d3.interpolateHcl)
     c(v).toString()
 
-  _collectPendingVirtualAnnotations: (startIndex, endIndex, results = []) ->
+  _collectPendingVirtualAnnotations: (startIndex, endIndex) ->
+    results = []
     for index in [startIndex .. endIndex]
       tasks = @annotator.virtualAnchors[index]
       if tasks?
-        for task in tasks when not task.done
-          results.push task.annotation
+        $.merge results, (task.annotation for task in tasks when not task.target.physicalAnchor?)
     results
 
   _update: =>
@@ -141,8 +141,8 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
       lastPage = mapper.getPageCount() - 1
 
       # Collect the pending virtual anchors from above and below
-      this._collectPendingVirtualAnnotations 0, currentPage-1, above
-      this._collectPendingVirtualAnnotations currentPage+1, lastPage, below
+      $.merge above, this._collectPendingVirtualAnnotations 0, currentPage-1
+      $.merge below, this._collectPendingVirtualAnnotations currentPage+1, lastPage
 
     comments = []
 
@@ -343,12 +343,12 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
       # Does one of a few things when a tab is clicked depending on type
       .on 'click', (bucket) =>
         d3.event.stopPropagation()
-        highlights = wrapper.find('.annotator-hl')
         pad = defaultView.innerHeight * .2
 
-        # If it's the upper tab, scroll to next bucket above
-        if @isUpper bucket
+        # If it's the upper tab, scroll to next bucket above (direct version)
+        if (@isUpper bucket) and not @annotator.virtualAnchoring
           threshold = defaultView.pageYOffset
+          highlights = wrapper.find('.annotator-hl')
           {next} = highlights.toArray().reduce (acc, hl) ->
             {pos, next} = acc
             if pos < $(hl).offset().top < threshold
@@ -366,9 +366,30 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
               top = scrollable.scrollTop()
               scrollable.stop().animate {scrollTop: top - pad}, 300
 
-        # If it's the lower tab, scroll to next bucket below
-        else if @isLower bucket
+        # If it's the upper tab, scroll to next bucket above (virtual version)
+        else if (@isUpper bucket) and @annotator.virtualAnchoring
+          # Find the next annotation, based on character position
+          {next} = @buckets[bucket].reduce (acc, ann) ->
+            {start, next} = acc
+            if start < ann.target[0].virtualAnchor.start
+              start: ann.target[0].virtualAnchor.start
+              next: ann
+            else
+              acc
+          , {start: 0, next: null}
+          target = next.target[0] # This is where we want to go
+          if target.physicalAnchor? # Is this rendered?
+            hl = target.physicalAnchor.highlight
+            $(hl).scrollintoview()
+          else # Not rendered yet
+            anchor = target.virtualAnchor
+            @pendingScroll = target # Pass this value to our listener
+            @annotator.domMapper.setPageIndex anchor.startPage
+
+        # If it's the lower tab, scroll to next bucket below (direct version)
+        else if (@isLower bucket) and not @annotator.virtualAnchoring
           threshold = defaultView.pageYOffset + defaultView.innerHeight - pad
+          highlights = wrapper.find('.annotator-hl')
           {next} = highlights.toArray().reduce (acc, hl) ->
             {pos, next} = acc
             if threshold < $(hl).offset().top < pos
@@ -385,6 +406,26 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
                 scrollable = $(this)
               top = scrollable.scrollTop()
               scrollable.stop().animate {scrollTop: top + pad}, 300
+
+        # If it's the lower tab, scroll to next bucket below (virtual version)
+        else if (@isLower bucket) and @annotator.virtualAnchoring
+          # Find the next annotation, based on character position
+          {next} = @buckets[bucket].reduce (acc, ann) ->
+            {start, next} = acc
+            if ann.target[0].virtualAnchor.start < start
+              start: ann.target[0].virtualAnchor.start
+              next: ann
+            else
+              acc
+          , {start: @annotator.domMapper.getDocLength(), next: null}
+          target = next.target[0] # This is where we want to go
+          if target.physicalAnchor? # Is this rendered?
+            hl = target.physicalAnchor.highlight
+            $(hl).scrollintoview()
+          else # Not rendered yet
+            anchor = target.virtualAnchor
+            @pendingScroll = target # Pass this value to our listener
+            @annotator.domMapper.setPageIndex anchor.startPage
 
         # If it's neither of the above, load the bucket into the viewer
         else
@@ -410,6 +451,13 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
 
     if @dynamicBucket
       this._fillDynamicBucket()
+
+    # Event handler to finish scrolling when we have to wait for rendering
+    @annotator.subscribe "annotationPhysicallyAnchored", (task) =>
+      if @pendingScroll? and task.target is @pendingScroll
+        # The wanted annotation has been anchored.
+        hl = task.target.physicalAnchor.highlight
+        $(hl).scrollintoview()
 
   _fillDynamicBucket: =>
     top = window.pageYOffset
