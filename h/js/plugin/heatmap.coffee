@@ -461,7 +461,7 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
         # The wanted annotation has been anchored.
         delete @pendingScroll
         hl = task.target.physicalAnchor.highlight
-        this._scrollTo $(hl)
+        this._scrollDownTo $(hl)
 
   _fillDynamicBucket: =>
     top = window.pageYOffset

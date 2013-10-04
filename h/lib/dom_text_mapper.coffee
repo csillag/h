@@ -210,11 +210,7 @@ class window.DomTextMapper
   # Get the matching DOM elements for a given set of charRanges
   # (Calles getMappingsForCharRange for each element in the givenl ist)
   getMappingsForCharRanges: (charRanges) ->
-#    console.log "charRanges:"
-#    console.log charRanges
-    (for charRange in charRanges
-      mapping = @getMappingsForCharRange charRange.start, charRange.end
-    )
+    (@getMappingsForCharRange charRange.start, charRange.end) for charRange in charRanges
 
   # Return the rendered value of a part of the dom.
   # If path is not given, the default path is used.
@@ -352,7 +348,6 @@ class window.DomTextMapper
         endInfo: endInfo
       safeParent: r.commonAncestorContainer
     }
-#    console.log "Done collecting"
     result
 
   # ===== Private methods (never call from outside the module) =======
