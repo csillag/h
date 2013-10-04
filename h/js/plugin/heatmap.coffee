@@ -123,6 +123,23 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
         $.merge results, (task.annotation for task in tasks when not task.target.physicalAnchor?)
     results
 
+  _scrollTo: (element, up) ->
+    wrapper = @annotator.wrapper
+    defaultView = wrapper[0].ownerDocument.defaultView
+    pad = defaultView.innerHeight * .2
+    element?.scrollintoview
+      complete: ->
+        if this.parentNode is this.ownerDocument
+          scrollable = $(this.ownerDocument.body)
+        else
+          scrollable = $(this)
+        top = scrollable.scrollTop()
+        correction = pad * (if up then -1 else +1)
+        scrollable.stop().animate {scrollTop: top + correction}, 300
+
+  _scrollUpTo: (element) -> this._scrollTo element, true
+  _scrollDownTo: (element) -> this._scrollTo element, false
+
   _update: =>
     wrapper = @annotator.wrapper
     highlights = wrapper.find('.annotator-hl')
@@ -357,14 +374,7 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
             else
               acc
           , {pos: 0, next: null}
-          next?.scrollintoview
-            complete: ->
-              if this.parentNode is this.ownerDocument
-                scrollable = $(this.ownerDocument.body)
-              else
-                scrollable = $(this)
-              top = scrollable.scrollTop()
-              scrollable.stop().animate {scrollTop: top - pad}, 300
+          this._scrollUpTo next, true
 
         # If it's the upper tab, scroll to next bucket above (virtual version)
         else if (@isUpper bucket) and @annotator.virtualAnchoring
@@ -380,7 +390,7 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
           target = next.target[0] # This is where we want to go
           if target.physicalAnchor? # Is this rendered?
             hl = target.physicalAnchor.highlight
-            $(hl).scrollintoview()
+            this._scrollUpTo $(hl)
           else # Not rendered yet
             anchor = target.virtualAnchor
             @pendingScroll = target # Pass this value to our listener
@@ -398,14 +408,7 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
             else
               acc
           , {pos: Number.MAX_VALUE, next: null}
-          next?.scrollintoview
-            complete: ->
-              if this.parentNode is this.ownerDocument
-                scrollable = $(this.ownerDocument.body)
-              else
-                scrollable = $(this)
-              top = scrollable.scrollTop()
-              scrollable.stop().animate {scrollTop: top + pad}, 300
+          this._scrollDownTo next
 
         # If it's the lower tab, scroll to next bucket below (virtual version)
         else if (@isLower bucket) and @annotator.virtualAnchoring
@@ -421,7 +424,7 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
           target = next.target[0] # This is where we want to go
           if target.physicalAnchor? # Is this rendered?
             hl = target.physicalAnchor.highlight
-            $(hl).scrollintoview()
+            this._scrollDownTo $(hl)
           else # Not rendered yet
             anchor = target.virtualAnchor
             @pendingScroll = target # Pass this value to our listener
@@ -456,8 +459,9 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
     @annotator.subscribe "annotationPhysicallyAnchored", (task) =>
       if @pendingScroll? and task.target is @pendingScroll
         # The wanted annotation has been anchored.
+        delete @pendingScroll
         hl = task.target.physicalAnchor.highlight
-        $(hl).scrollintoview()
+        this._scrollTo $(hl)
 
   _fillDynamicBucket: =>
     top = window.pageYOffset
