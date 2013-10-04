@@ -180,7 +180,8 @@ class window.DTM_MatcherCore
     if (not pattern?) or # "No pattern, nothing to compare. Assume it's OK."
         analysis.exact or # "Found text matches exactly to pattern"
         (analysis.comparison.errorLevel <= matchThreshold) # still acceptable
-      mappings = @mapper.getMappingsForCharRange charRange.start, charRange.end
+      unless @mapper.requiresVirtualAnchoring
+        mappings = @mapper.getMappingsForCharRange charRange.start, charRange.end
 
       # Collect the results
       match = {}
@@ -231,11 +232,12 @@ class window.DTM_MatcherCore
     matches = []
     for textMatch in textMatches
       do (textMatch) =>
-        # See how good a match we have        
+        # See how good a match we have
         analysis = @_analyzeMatch pattern, textMatch, fuzzyComparison
         
-        # Collect the mappings        
-        mappings = @mapper.getMappingsForCharRange textMatch.start,
+        # Collect the mappings
+        unless @mapper.requiresVirtualAnchoring
+          mappings = @mapper.getMappingsForCharRange textMatch.start,
             textMatch.end
 
         # Collect the results

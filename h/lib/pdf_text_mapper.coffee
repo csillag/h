@@ -5,7 +5,7 @@ class window.PDFTextMapper
   # Are we working with a PDF document?
   @applicable: -> PDFView?.initialized ? false
 
-  @requiresVirtualAnchoring: true
+  requiresVirtualAnchoring: true
         
   constructor: ->
     @setEvents()     
