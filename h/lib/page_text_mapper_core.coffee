@@ -63,16 +63,15 @@ class window.PageTextMapperCore
 
   # Look up info about a give DOM node, uniting page and node info
   getInfoForNode: (node) ->
-    data =
-      page: @getPageForNode node
-      node: pageData.domMapper.getInfoForNode node
+    pageData = @getPageForNode node
+    nodeData = pageData.domMapper.getInfoForNode node
     # Copy info about the node
     info = {}
-    for k,v of data.node
+    for k,v of nodeData
       info[k] = v
     # Correct the chatacter offsets with that of the page
-    info.start += data.page.start
-    info.end += data.page.start
+    info.start += pageData.start
+    info.end += pageData.start
     info
 
   # Return some data about a given character range
