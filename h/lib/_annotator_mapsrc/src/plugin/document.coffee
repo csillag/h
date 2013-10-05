@@ -137,7 +137,7 @@ class Annotator.Plugin.Document extends Annotator.Plugin
   # hack to get a absolute url from a possibly relative one
   
   _absoluteUrl: (url) ->
-    img = $("<img src='#{ url }'>")
+    img = $("<img src='#{ url }' />")
     url = img.prop('src')
     img.prop('src', null)
     return url
