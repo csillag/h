@@ -486,7 +486,6 @@ class Hypothesis extends Annotator
     # No targets and no references means that this is a comment
     not (annotation.references?.length or annotation.target?.length)
 
-
   # Discard all drafts, deleting unsaved annotations from the annotator
   discardDrafts: ->
     return @element.injector().get('drafts').discard()

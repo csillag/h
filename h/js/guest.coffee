@@ -71,6 +71,9 @@ class Annotator.Guest extends Annotator
     # Scan the document text with the DOM Text libraries
     this.scanDocument "Annotator initialized"
 
+    # Create an array for holding the comments
+    @comments = []
+
     # Watch for deleted comments
     this.subscribe 'annotationDeleted', (annotation) =>
       if this.isComment annotation
