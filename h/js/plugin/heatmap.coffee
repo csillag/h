@@ -162,7 +162,7 @@ class Annotator.Plugin.Heatmap extends Annotator.Plugin
       $.merge above, this._collectPendingVirtualAnnotations 0, currentPage-1
       $.merge below, this._collectPendingVirtualAnnotations currentPage+1, lastPage
 
-    comments = []
+    comments = @annotator.comments.slice()
 
     # Construct control points for the heatmap highlights
     points = highlights.toArray().reduce (points, hl, i) =>
