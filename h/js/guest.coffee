@@ -26,8 +26,7 @@ class Annotator.Guest extends Annotator
     super
     delete @options.noScan
 
-    # Create an array for holding the comments
-    @comments = []
+    @role = "guest"
 
     @frame = $('<div></div>')
     .appendTo(@wrapper)
