@@ -4,7 +4,7 @@ class window.PDFTextMapper extends window.PageTextMapperCore
   # Are we working with a PDF document?
   @applicable: -> PDFView?.initialized ? false
 
-  requiresVirtualAnchoring: true
+  requiresTwoPhaseAnchoring: true
 
   # Get the number of pages
   getPageCount: -> PDFView.pages.length

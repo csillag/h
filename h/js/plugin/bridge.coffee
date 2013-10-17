@@ -38,34 +38,7 @@ class Annotator.Plugin.Bridge extends Annotator.Plugin
     # to reconcile any differences. The default behavior is to merge all
     # keys of the remote object into the local copy
     merge: (local, remote) ->
-      debug = window.annotator?.role is "guest"
       for k, v of remote
-        if debug and (k is "target") and local[k]?.length
-          o = local.target
-          if o.length is v.length
-            for i in [ 0 .. v.length-1 ]
-              if o[i].virtualAnchor?
-                v[i].virtualAnchor = o[i].virtualAnchor
-                console.log "Saved virtualAnchor: " + v[i].virtualAnchor
-              else
-                console.log "No virtualAnchor to save on target."
-                console.log o[i]
-                window.wtft = o[i]
-              if o[i].physicalAnchor?
-                v[i].physicalAnchor = o[i].physicalAnchor
-                console.log "Saved physicalAnchor: " + v[i].physicalAnchor
-          else
-            if o.length
-              if o[0].virtualAnchor?
-                console.log "Can't save nothing, because length is different"
-                console.log "Old:"
-                console.log o
-                console.log "New:"
-                console.log v
-              else
-                console.log "Overwriting targets, but we did not have any virtualAnchors to start with, so no problem."
-            else
-              console.log "Overwriting targets, but we did not have any targets to start with, so no problem."
         local[k] = v
       local
 

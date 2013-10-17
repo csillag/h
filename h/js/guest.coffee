@@ -34,23 +34,13 @@ class Annotator.Guest extends Annotator
 
     delete @options.app
 
-    forbiddenTargetFields = [ 'virtualAnchor', 'physicalAnchor' ]
-    formatTarget = (target) ->
-      formatted = {}
-      for k, v of target when forbiddenTargetFields.indexOf(k) is -1
-        formatted[k] = v
-      formatted
-
     this.addPlugin 'Bridge',
       formatter: (annotation) =>
         formatted = {}
         if annotation.document?
           formatted['uri'] = @plugins.Document.uri()
-        for k, v of annotation when k isnt 'highlights'
-          formatted[k] = if k is "target"
-            (formatTarget t for t in v)
-          else
-            v
+        for k, v of annotation when k not in ['highlights', 'anchors']
+          formatted[k] = v
         # Work around issue in jschannel where a repeated object is considered
         # recursive, even if it is not its own ancestor.
         if formatted.document?.title
@@ -69,12 +59,12 @@ class Annotator.Guest extends Annotator
       if not @plugins[name]
         this.addPlugin(name, opts)
 
-    this.subscribe "annotationPhysicallyAnchored", (task) =>
-      if task.annotation.id? # Is this a finished annotation ?
+    this.subscribe "annotationPhysicallyAnchored", (anchor) =>
+      if anchor.annotation.id? # Is this a finished annotation ?
         @plugins.Heatmap._update()
 
-    this.subscribe "annotationPhysicallyUnAnchored", (task) =>
-      if task.annotation.id? # Is this a finished annotation ?
+    this.subscribe "annotationPhysicallyUnAnchored", (anchor) =>
+      if anchor.annotation.id? # Is this a finished annotation ?
         @plugins.Heatmap._update()
 
     # Scan the document text with the DOM Text libraries

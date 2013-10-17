@@ -75,7 +75,7 @@ class window.PageTextMapperCore
     info
 
   # Return some data about a given character range
-  getMappingsForCharRange: (start, end, exceptPages = []) ->
+  getMappingsForCharRange: (start, end, pages) ->
     #console.log "Get mappings for char range [" + start + "; " + end + "]."
 
     # Check out which pages are these on
@@ -96,13 +96,11 @@ class window.PageTextMapperCore
       mappings.sections[0]
 
     # Get the section for all involved pages
-    pages = [startIndex..endIndex].filter (index) =>
-      (@isPageMapped index) and (exceptPages.indexOf(index) is -1)
-    sections = (getSection(index) for index in pages)
+    sections = {}
+    for index in pages ? [startIndex..endIndex]
+      sections[index] = getSection index
 
     # Return the data
-    pages: pages
-    allRendered: exceptPages.length + pages.length is endIndex - startIndex + 1
     sections: sections
 
   getCorpus: -> @_corpus
