@@ -9,17 +9,22 @@ class window.DomTextMapper
 
   @instances: []
 
-  @changed: (node, reason = "no reason") ->
+  @changed: (node, reason = "no reason", data = {}) ->
     if @instances.length is 0 then return
-#    dm = @instances[0]
-#    console.log "Node @ " + (dm.getPathTo node) + " has changed: " + reason
+#    console.log "==== Node"
+#    console.log node
+#    console.log "has changed: " + reason
+#    console.log data
     for instance in @instances when instance.rootNode.contains(node)
-      instance.performUpdateOnNode node
+#      console.log "Telling instance '" + instance.id + "'."
+      instance.performUpdateOnNode node, data
     null
 
-  constructor: ->
+  constructor: (id)->
     @setRealRoot()
-    window.DomTextMapper.instances.push this
+    instances = window.DomTextMapper.instances
+    instances.push this
+    @id = id ? "d-t-m instance #" + instances.length
 
   # ===== Public methods =======
 
@@ -365,7 +370,10 @@ class window.DomTextMapper
   parentPath: (path) -> path.substr 0, path.lastIndexOf "/"
 
   domChangedSince: (timestamp) ->
-    if @lastDOMChange? and timestamp? then @lastDOMChange > timestamp else true
+    if @lastDOMChange? and timestamp?
+      @lastDOMChange > timestamp
+    else
+      true
 
   domStableSince: (timestamp) -> not @domChangedSince timestamp
 
