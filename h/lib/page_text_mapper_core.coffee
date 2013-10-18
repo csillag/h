@@ -31,7 +31,7 @@ class window.PageTextMapperCore
    # Create the mappings for a given page    
   _mapPage: (info) ->
     info.node = @getRootNodeForPage info.index        
-    info.domMapper = new DomTextMapper()
+    info.domMapper = new DomTextMapper("d-t-m for page #" + info.index)
     if @_parseSelectedText?
       info.domMapper.postProcess = @_parseSelectedText
     info.domMatcher = new DomTextMatcher info.domMapper
@@ -49,6 +49,11 @@ class window.PageTextMapperCore
       event.initUIEvent "docPageMapped", false, false, window, 0
       event.pageIndex = info.index
       window.dispatchEvent event
+
+  # Update the mappings for a given page
+  _updateMap: (info) ->
+    #console.log "Updating mappings for page #" + info.index
+    info.domMatcher.scan()
 
   # Delete the mappings for a given page
   _unmapPage: (info) ->
