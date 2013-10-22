@@ -17,7 +17,7 @@ class window.DomTextMapper
 #    console.log data
     for instance in @instances when instance.rootNode.contains(node)
 #      console.log "Telling instance '" + instance.id + "'."
-      instance.performUpdateOnNode node, data
+      instance.performUpdateOnNode node, false, data
     null
 
   constructor: (id)->
