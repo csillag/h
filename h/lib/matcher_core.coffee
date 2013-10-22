@@ -180,7 +180,7 @@ class window.DTM_MatcherCore
     if (not pattern?) or # "No pattern, nothing to compare. Assume it's OK."
         analysis.exact or # "Found text matches exactly to pattern"
         (analysis.comparison.errorLevel <= matchThreshold) # still acceptable
-      unless @mapper.requiresVirtualAnchoring
+      unless @mapper.requiresTwoPhaseAnchoring
         mappings = @mapper.getMappingsForCharRange charRange.start, charRange.end
 
       # Collect the results
@@ -236,7 +236,7 @@ class window.DTM_MatcherCore
         analysis = @_analyzeMatch pattern, textMatch, fuzzyComparison
         
         # Collect the mappings
-        unless @mapper.requiresVirtualAnchoring
+        unless @mapper.requiresTwoPhaseAnchoring
           mappings = @mapper.getMappingsForCharRange textMatch.start,
             textMatch.end
 

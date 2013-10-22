@@ -783,7 +783,7 @@ class Annotator extends Delegator
         # when scan has finished
         @pendingScan.then =>
           #console.log "Document scan finished. Can start anchoring."
-          loader annotations
+          setTimeout => loader annotations
       else # no pending scan
         # We can start parsing them right away
         loader annotations
