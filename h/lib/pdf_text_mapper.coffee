@@ -5,6 +5,7 @@ class window.PDFTextMapper extends window.PageTextMapperCore
   @applicable: -> PDFView?.initialized ? false
 
   requiresTwoPhaseAnchoring: true
+  requiresSmartStringPadding: true
 
   # Get the number of pages
   getPageCount: -> PDFView.pages.length
@@ -56,14 +57,8 @@ class window.PDFTextMapper extends window.PageTextMapperCore
             for index in [ startPage.index .. endPage.index ]
               #console.log "Should rescan page #" + index
               @_updateMap @pageInfo[index]
-
-  # Text conversation rules. We need this until we can make the results of
-  # the browser's Selection API and PDF.js's text extraction API compatible.
-  _selectionPattern: /[ ]/g
-  _parseSelectedText: (text) => text.replace @_selectionPattern, ""
-
-  _extractionPattern: /[ ]/g
-  _parseExtractedText: (text) => text.replace @_extractionPattern, ""
+      documentChanged: ->
+      timestamp: ->
 
   # Extract the text from the PDF
   scan: ->
@@ -80,7 +75,7 @@ class window.PDFTextMapper extends window.PageTextMapperCore
       # PDF.js text extraction has finished.
 
       # Post-process the extracted text
-      @pageInfo = ({ content: @_parseExtractedText page } for page in PDFFindController.pageContents)
+      @pageInfo = ({ content: page } for page in PDFFindController.pageContents)
 
       # Do some besic calculations with the content
       @_onHavePageContents()
