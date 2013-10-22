@@ -60,6 +60,9 @@ class window.PDFTextMapper extends window.PageTextMapperCore
       documentChanged: ->
       timestamp: ->
 
+  _extractionPattern: /[ ][ ]/g
+  _parseExtractedText: (text) => text.replace @_extractionPattern, " "
+
   # Extract the text from the PDF
   scan: ->
     console.log "Scanning document for text..."
@@ -75,7 +78,7 @@ class window.PDFTextMapper extends window.PageTextMapperCore
       # PDF.js text extraction has finished.
 
       # Post-process the extracted text
-      @pageInfo = ({ content: page } for page in PDFFindController.pageContents)
+      @pageInfo = ({ content: @_parseExtractedText page } for page in PDFFindController.pageContents)
 
       # Do some besic calculations with the content
       @_onHavePageContents()
