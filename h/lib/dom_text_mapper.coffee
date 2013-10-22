@@ -324,6 +324,8 @@ class window.DomTextMapper
 #        @log "Done with " + info.path
 
     if mappings.length is 0
+      @log "Collecting nodes for [" + start + ":" + end + "]"
+      @log "Should be: '" + @_corpus[ start .. (end-1) ] + "'."
       throw new Error "No mappings found for [" + start + ":" + end + "]!"
 
     mappings = mappings.sort (a, b) -> a.element.start - b.element.start
@@ -667,11 +669,11 @@ class window.DomTextMapper
     else
       index
     if startIndex is -1
-       # content of node is not present in parent's content - probably hidden,
-       # or something similar
-#       @log "Content of this not is not present in content of parent,
-#         at path " + path
-       return index
+      # content of node is not present in parent's content - probably hidden,
+      # or something similar
+      @log "Content of this not is not present in content of parent, at path " + path
+      @log "(Content: '" + content + "'.)"
+      return index
 
 
     endIndex = startIndex + content.length
@@ -719,9 +721,15 @@ class window.DomTextMapper
 
   # Internal debug method to verify the consistency of mapping info
   _testMap: ->
-    @log "Verifying map info."
+    @log "Verifying map info: was it all properly traversed?"
     for i,p of @path
+      unless p.atomic? then @log i + " is missing data."
+
+    @log "Verifying map info: do atomic elements match?"
+    for i,p of @path when p.atomic
       expected = @_corpus[p.start .. (p.end - 1) ]
       ok = p.content is expected
       unless ok then @log "Mismatch on " + i + ": content is '" + p.content + "', range in corpus is '" + expected + "'."
       ok
+
+    null
