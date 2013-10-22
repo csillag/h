@@ -32,11 +32,12 @@ class window.PageTextMapperCore
   _mapPage: (info) ->
     info.node = @getRootNodeForPage info.index        
     info.domMapper = new DomTextMapper("d-t-m for page #" + info.index)
-    if @_parseSelectedText?
-      info.domMapper.postProcess = @_parseSelectedText
     info.domMatcher = new DomTextMatcher info.domMapper
     info.domMapper.setRootNode info.node
-    info.domMatcher.scan()
+    info.domMapper.documentChanged()
+    if @requiresSmartStringPadding
+      info.domMapper.setExpectedContent info.content
+    info.domMapper.scan()
     renderedContent = info.domMapper.path["."].content
     if renderedContent isnt info.content
       console.log "Oops. Mismatch between rendered and extracted text!"

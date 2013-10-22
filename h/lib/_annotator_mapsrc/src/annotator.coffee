@@ -1061,7 +1061,7 @@ class Annotator extends Delegator
     annotation = this.setupAnnotation(annotation)
 
     # Show a temporary highlight so the user can see what they selected
-    $(annotation.highlights).addClass('annotator-hl-temporary')
+    setTimeout -> $(annotation.highlights).addClass('annotator-hl-temporary')
 
     # Make the highlights permanent if the annotation is saved
     save = =>
@@ -1133,14 +1133,11 @@ class Annotator extends Delegator
   _removeAnchor: (anchor) ->
     # Go over all the pages    
     for index in [anchor.virtual.startPage .. anchor.virtual.endPage]
-      if @anchors[index]?
-        # Remove the anchor from the list
-        i = @anchors[index].indexOf anchor
-        @anchors[index][i..i] = []
-        # Kill the list if it's empty
-        delete @anchors[index] unless @anchors[index].length
-      else
-        console.log "Warning: in _removeAnchor, we have no anchors for page #" + index + ", even though it should be related."
+      # Remove the anchor from the list
+      i = @anchors[index].indexOf anchor
+      @anchors[index][i..i] = []
+      # Kill the list if it's empty
+      delete @anchors[index] unless @anchors[index].length
 
   _physicallyAnchor: (anchor) ->
     return if anchor.allRendered # If we have everything, go home
