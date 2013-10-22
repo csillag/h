@@ -82,12 +82,12 @@ class window.PageTextMapperCore
 
   # Return some data about a given character range
   getMappingsForCharRange: (start, end, pages) ->
-    #console.log "Get mappings for char range [" + start + "; " + end + "]."
+    #console.log "Get mappings for char range [" + start + "; " + end + "], for pages " + pages + "."
 
     # Check out which pages are these on
     startIndex = @getPageIndexForPos start
     endIndex = @getPageIndexForPos end
-    #console.log "These are on pages [" + startIndex + "; " + endIndex + "]."
+    #console.log "These are on pages [" + startIndex + ".." + endIndex + "]."
 
     # Function to get the relevant section inside a given page
     getSection = (index) =>
