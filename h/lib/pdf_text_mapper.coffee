@@ -60,7 +60,7 @@ class window.PDFTextMapper extends window.PageTextMapperCore
       documentChanged: ->
       timestamp: ->
 
-  _extractionPattern: /[ ][ ]/g
+  _extractionPattern: /[ ]+/g
   _parseExtractedText: (text) => text.replace @_extractionPattern, " "
 
   # Extract the text from the PDF
